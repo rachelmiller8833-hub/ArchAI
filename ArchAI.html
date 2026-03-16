@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" x-data="archon()" :class="darkMode ? 'dark' : ''" x-init="init()">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARCHON — AI Architecture Brainstorming</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .pulse-dot { animation: pulse-dot 1s infinite; }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);   opacity: 1; }
+    }
+    .toast-enter { animation: slideIn 0.3s ease forwards; }
+
+    .cursor-blink::after {
+      content: '|';
+      animation: pulse-dot 0.7s infinite;
+      color: #6366f1;
+      margin-left: 1px;
+    }
+
+    .progress-fill { transition: width 0.5s ease; }
+
+    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
+
+    .step-pill-active { background: #6366f1; color: white; }
+    .step-pill-done   { background: #10b981; color: white; }
+    .step-pill-inactive { background: transparent; border: 1px solid #94a3b8; color: #94a3b8; }
+
+    @keyframes bounce-dot {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
+    .bounce-dot { animation: bounce-dot 1s infinite; }
+
+    .chat-thread-line {
+      position: relative;
+    }
+    .chat-thread-line::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 48px;
+      bottom: -16px;
+      width: 2px;
+      background: currentColor;
+      opacity: 0.15;
+    }
+    [dir="rtl"] .chat-thread-line::before {
+      left: auto;
+      right: 19px;
+    }
+
+    .conclusion-card {
+      background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%);
+      border: 1px solid rgba(99,102,241,0.25);
+    }
+    .dark .conclusion-card {
+      background: linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.12) 100%);
+      border: 1px solid rgba(99,102,241,0.3);
+    }
+
+    /* Modal backdrop */
+    .modal-backdrop {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+
+<body
+  class="min-h-screen transition-colors duration-200"
+  :class="darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'"
+>
+
+<!-- TOAST -->
+<div
+  class="fixed top-4 right-4 z-50 pointer-events-none"
+  :class="lang === 'he' ? 'right-auto left-4' : ''"
+>
+  <div
+    x-show="toastVisible"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 translate-x-8"
+    x-transition:enter-end="opacity-100 translate-x-0"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 translate-x-0"
+    x-transition:leave-end="opacity-0 translate-x-8"
+    class="bg-slate-800 text-white text-sm px-4 py-2 rounded-lg shadow-lg pointer-events-auto"
+    x-text="toastMsg"
+  ></div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div
+  x-show="showSettings"
+  x-transition:enter="transition ease-out duration-200"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  x-transition:leave="transition ease-in duration-150"
+  x-transition:leave-start="opacity-100"
+  x-transition:leave-end="opacity-0"
+  class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop"
+  @click.self="showSettings = false"
+>
+  <div
+    class="w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden"
+    :class="darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-slate-200'"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 scale-95"
+    x-transition:enter-end="opacity-100 scale-100"
+  >
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b" :class="darkMode ? 'border-slate-700' : 'border-slate-200'">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">⚙️</span>
+        <h2 class="font-bold text-base">API Settings</h2>
+      </div>
+      <button @click="showSettings = false" class="w-8 h-8 flex items-center justify-center rounded-lg transition-colors" :class="darkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'">✕</button>
+    </div>
+
+    <div class="px-6 py-4 space-y-5 max-h-[70vh] overflow-y-auto scrollbar-thin">
+      <!-- API Keys -->
+      <div>
+        <h3 class="text-sm font-semibold mb-3">API Keys</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-medium mb-1 block" :class="darkMode ? 'text-slate-400' : 'text-slate-600'">Anthropic API Key</label>
+            <div class="flex gap-2">
+              <input
+                :type="showAnthropicKey ? 'text' : 'password'"
+                x-model="settings.anthropicKey"
+                placeholder="sk-ant-..."
+                class="flex-1 px-3 py-2 rounded-lg border text-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500/30"
+                :class="darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400'"
+              />
+              <button @click="showAnthropicKey = !showAnthropicKey" class="px-3 py-2 rounded-lg border text-xs transition-colors" :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'" x-text="showAnthropicKey ? 'Hide' : 'Show'"></button>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium mb-1 block" :class="darkMode ? 'text-slate-400' : 'text-slate-600'">OpenAI API Key <span class="text-slate-500 font-normal">(optional)</span></label>
+            <input
+              type="password"
+              x-model="settings.openaiKey"
+              placeholder="sk-..."
+              class="w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500/30"
+              :class="darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400'"
+            />
+          </div>
+        </div>
+      </div>
+
+      <hr :class="darkMode ? 'border-slate-700' : 'border-slate-200'" />
+
+      <!-- Client Access Code -->
+      <div>
+        <h3 class="text-sm font-semibold mb-1">Client Access Code</h3>
+        <p class="text-xs mb-3" :class="darkMode ? 'text-slate-400' : 'text-slate-500'">Generate a temporary code to share with clients. They can use ARCHON without their own API key.</p>
+        <button
+          @click="generateClientCode()"
+          class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
+        >Generate Client Code</button>
+        <div x-show="generatedCode" class="mt-3 flex items-center gap-2">
+          <div class="flex-1 px-3 py-2 rounded-lg border font-mono text-sm" :class="darkMode ? 'bg-slate-800 border-slate-700 text-indigo-400' : 'bg-slate-50 border-slate-200 text-indigo-600'" x-text="generatedCode"></div>
+          <button @click="copyClientCode()" class="px-3 py-2 rounded-lg border text-xs transition-colors" :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'">Copy</button>
+        </div>
+      </div>
+
+      <hr :class="darkMode ? 'border-slate-700' : 'border-slate-200'" />
+
+      <!-- Usage Limits -->
+      <div>
+        <h3 class="text-sm font-semibold mb-3">Usage Limits</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-medium mb-1 block" :class="darkMode ? 'text-slate-400' : 'text-slate-600'">Max Sessions</label>
+            <input
+              type="number"
+              x-model="settings.maxSessions"
+              class="w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500/30"
+              :class="darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-400'"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium mb-1 block" :class="darkMode ? 'text-slate-400' : 'text-slate-600'">Expiry Date</label>
+            <input
+              type="date"
+              x-model="settings.expiryDate"
+              class="w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500/30"
+              :class="darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-400'"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t" :class="darkMode ? 'border-slate-700' : 'border-slate-200'">
+      <button @click="showSettings = false" class="px-4 py-2 rounded-lg border text-sm transition-colors" :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'">Cancel</button>
+      <button @click="saveSettings()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<nav
+  class="sticky top-0 z-40 border-b transition-colors duration-200"
+  :class="darkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-200'"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+    <!-- Logo + Back button -->
+    <div class="flex items-center gap-3 shrink-0">
+      <!-- Back button -->
+      <button
+        x-show="history.length > 0"
+        @click="goBack()"
+        class="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'"
+      >← Back</button>
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
+          <span class="text-white text-xs font-bold mono">A</span>
+        </div>
+        <span class="font-bold text-sm tracking-tight">ARCHON</span>
+        <span class="hidden sm:block text-xs ml-1" :class="darkMode ? 'text-slate-400' : 'text-slate-500'" x-text="t('tagline')"></span>
+      </div>
+    </div>
+
+    <!-- Breadcrumb nav -->
+    <div class="hidden md:flex items-center gap-1 text-xs font-medium">
+      <template x-for="(s, i) in stepList" :key="i">
+        <div class="flex items-center gap-1">
+          <button
+            class="px-3 py-1 rounded-full transition-all duration-200 whitespace-nowrap"
+            :class="stepIndex > i ? 'step-pill-done cursor-pointer' : stepIndex === i ? 'step-pill-active cursor-default' : 'step-pill-inactive cursor-default'"
+            @click="stepIndex > i ? navigateTo(['input','debate','prototypes','continue'][i]) : null"
+            x-text="(i+1) + ' ' + s"
+          ></button>
+          <span x-show="i < 3" class="text-slate-400">›</span>
+        </div>
+      </template>
+    </div>
+
+    <!-- Nav actions -->
+    <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+
+      <!-- Stop button — shown only while streaming debate -->
+      <button
+        x-show="step === 'debate' && isStreaming"
+        @click="stopStreaming()"
+        class="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors"
+      >⏹ Stop</button>
+
+      <!-- Download PRD (visible after step 2 complete, step 3, step 4) -->
+      <button
+        x-show="(stepIndex >= 1 && debateComplete) || stepIndex >= 2"
+        @click="downloadPRD()"
+        class="hidden sm:flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+      >⬇ PRD</button>
+
+      <!-- Export MD (visible after step 2 complete) -->
+      <button
+        x-show="stepIndex >= 1 && debateComplete"
+        @click="exportMd()"
+        class="hidden sm:flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+        x-text="t('export')"
+      ></button>
+
+      <!-- Share (visible after step 2 complete) -->
+      <button
+        x-show="stepIndex >= 1 && debateComplete"
+        @click="share()"
+        class="hidden sm:flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+        x-text="t('share')"
+      ></button>
+
+      <!-- New Session -->
+      <button
+        @click="reset()"
+        class="text-xs px-3 py-1.5 rounded-md border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+        x-text="t('newSession')"
+      ></button>
+
+      <!-- Language toggle -->
+      <button
+        @click="toggleLang()"
+        class="text-xs px-3 py-1.5 rounded-md border font-mono transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+      >
+        <span x-text="lang === 'en' ? 'עב' : 'EN'"></span>
+      </button>
+
+      <!-- Settings gear -->
+      <button
+        @click="showSettings = true"
+        class="w-8 h-8 flex items-center justify-center rounded-md border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+        title="API Settings"
+      >⚙️</button>
+
+      <!-- Dark mode toggle -->
+      <button
+        @click="darkMode = !darkMode"
+        class="w-8 h-8 flex items-center justify-center rounded-md border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+      >
+        <span x-show="!darkMode" class="text-sm">🌙</span>
+        <span x-show="darkMode" class="text-sm">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+  <!-- ========== STEP 1: CONFIGURE ========== -->
+  <div x-show="step === 'input'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+    <div class="max-w-2xl mx-auto">
+      <div
+        class="rounded-2xl border shadow-sm p-6 sm:p-8 transition-colors duration-200"
+        :class="darkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-200'"
+      >
+        <!-- Header -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold mb-1" x-text="t('tagline')"></h1>
+          <p class="text-sm" :class="darkMode ? 'text-slate-400' : 'text-slate-500'">
+            8 AI engineers will debate how to build your idea — live.
+          </p>
+        </div>
+
+        <!-- Quick templates -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <template x-for="(tpl, i) in t('templates')" :key="i">
+            <button
+              @click="topic = tpl"
+              class="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors"
+              :class="topic === tpl
+                ? 'bg-indigo-600 border-indigo-600 text-white'
+                : (darkMode ? 'border-slate-600 hover:border-indigo-500 text-slate-300 hover:text-indigo-400' : 'border-slate-300 hover:border-indigo-400 text-slate-600 hover:text-indigo-600')"
+              x-text="tpl"
+            ></button>
+          </template>
+        </div>
+
+        <!-- Textarea -->
+        <textarea
+          x-model="topic"
+          class="w-full min-h-[160px] p-4 rounded-xl border text-sm leading-relaxed resize-none outline-none transition-colors duration-200 focus:ring-2 focus:ring-indigo-500/30"
+          :class="darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400'"
+          :placeholder="t('placeholder')"
+        ></textarea>
+
+        <!-- Discussion depth toggle -->
+        <div class="mt-4 flex items-center justify-between">
+          <span class="text-sm font-medium" x-text="t('depth')"></span>
+          <div class="flex rounded-lg overflow-hidden border" :class="darkMode ? 'border-slate-700' : 'border-slate-200'">
+            <button
+              @click="depth = 'quick'"
+              class="px-4 py-2 text-xs font-medium transition-colors"
+              :class="depth === 'quick'
+                ? 'bg-indigo-600 text-white'
+                : (darkMode ? 'bg-slate-800 text-slate-400 hover:text-slate-200' : 'bg-white text-slate-600 hover:text-slate-800')"
+              x-text="t('quick')"
+            ></button>
+            <button
+              @click="depth = 'full'"
+              class="px-4 py-2 text-xs font-medium transition-colors border-l"
+              :class="[depth === 'full'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : (darkMode ? 'bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700' : 'bg-white text-slate-600 hover:text-slate-800 border-slate-200')]"
+              x-text="t('full')"
+            ></button>
+          </div>
+        </div>
+
+        <!-- Start button -->
+        <button
+          @click="start()"
+          :disabled="!topic.trim()"
+          class="mt-6 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200"
+          :class="topic.trim()
+            ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30'
+            : (darkMode ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed')"
+          x-text="t('start')"
+        ></button>
+      </div>
+
+      <!-- Powered by -->
+      <p class="text-center text-xs mt-4 mono" :class="darkMode ? 'text-slate-500' : 'text-slate-400'" x-text="t('powered')"></p>
+    </div>
+  </div>
+
+  <!-- ========== STEP 2: DEBATE (chat timeline) ========== -->
+  <div x-show="step === 'debate'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+
+    <!-- Progress header -->
+    <div class="mb-6 max-w-3xl mx-auto">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-bold">
+          <span x-text="completedCount"></span>
+          <span class="font-normal" :class="darkMode ? 'text-slate-400' : 'text-slate-500'"> / <span x-text="engineers.length"></span> <span x-text="t('agentsOf')"></span></span>
+        </h2>
+        <span class="text-xs mono" :class="darkMode ? 'text-slate-400' : 'text-slate-500'" x-text="topic"></span>
+      </div>
+      <div class="w-full h-1.5 rounded-full" :class="darkMode ? 'bg-slate-800' : 'bg-slate-200'">
+        <div
+          class="h-full bg-indigo-600 rounded-full progress-fill"
+          :style="`width: ${engineers.length > 0 ? (completedCount / engineers.length) * 100 : 0}%`"
+        ></div>
+      </div>
+
+      <!-- Stopped banner -->
+      <div
+        x-show="stopped"
+        class="mt-3 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+      >Discussion stopped. Here's what we have so far.</div>
+    </div>
+
+    <!-- Chat timeline -->
+    <div class="max-w-3xl mx-auto" id="chat-container">
+      <template x-for="(msg, i) in messages" :key="msg.id">
+        <div
+          x-show="msg.visible"
+          x-transition:enter="transition ease-out duration-300"
+          x-transition:enter-start="opacity-0 translate-y-2"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          class="flex gap-3 mb-6"
+          :class="msg.isConclusion ? '' : (i < messages.length - 1 && !messages[i+1].isConclusion ? 'chat-thread-line' : '')"
+          :style="msg.isConclusion ? '' : `color: ${msg.threadColor}`"
+        >
+          <!-- Avatar -->
+          <div
+            class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mono"
+            :style="`background-color: ${msg.avatarBg}; color: white;`"
+            x-text="msg.initials"
+          ></div>
+
+          <!-- Conclusion card -->
+          <template x-if="msg.isConclusion">
+            <div class="flex-1 conclusion-card rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="font-bold text-sm text-indigo-500" x-text="msg.conclusionTitle"></span>
+                <span class="font-mono text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded">Claude Opus 4.6</span>
+                <span class="text-xs ml-auto" :class="darkMode ? 'text-slate-500' : 'text-slate-400'">just now</span>
+              </div>
+              <p
+                class="text-sm leading-relaxed"
+                :class="[darkMode ? 'text-slate-300' : 'text-slate-700', msg.streaming ? 'cursor-blink' : '']"
+                x-text="msg.text"
+              ></p>
+            </div>
+          </template>
+
+          <!-- Regular message -->
+          <template x-if="!msg.isConclusion">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="font-semibold text-sm" x-text="msg.name"></span>
+                <span class="text-xs" :class="darkMode ? 'text-slate-500' : 'text-slate-400'" x-text="msg.role"></span>
+                <span class="font-mono text-xs px-2 py-0.5 rounded" :class="darkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'" x-text="msg.model"></span>
+                <span class="text-xs ml-auto" :class="darkMode ? 'text-slate-500' : 'text-slate-400'">just now</span>
+              </div>
+              <p
+                class="text-sm leading-relaxed ps-0"
+                :class="[darkMode ? 'text-slate-300' : 'text-slate-700', msg.streaming ? 'cursor-blink' : '']"
+                x-text="msg.text"
+              ></p>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Typing indicator -->
+      <div
+        x-show="typingVisible"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="flex gap-3 mb-4"
+      >
+        <div
+          class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mono"
+          :style="`background-color: ${typingAvatar}; color: white;`"
+          x-text="typingInitials"
+        ></div>
+        <div class="flex items-end gap-1 pb-2 pt-3">
+          <span class="w-2 h-2 rounded-full bounce-dot" :class="darkMode ? 'bg-slate-500' : 'bg-slate-400'" style="animation-delay:0ms"></span>
+          <span class="w-2 h-2 rounded-full bounce-dot" :class="darkMode ? 'bg-slate-500' : 'bg-slate-400'" style="animation-delay:150ms"></span>
+          <span class="w-2 h-2 rounded-full bounce-dot" :class="darkMode ? 'bg-slate-500' : 'bg-slate-400'" style="animation-delay:300ms"></span>
+        </div>
+      </div>
+
+      <!-- View Prototypes button -->
+      <div
+        x-show="debateComplete"
+        x-transition:enter="transition ease-out duration-500"
+        x-transition:enter-start="opacity-0 translate-y-4"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        class="text-center pt-4 pb-2"
+      >
+        <button
+          @click="goToPrototypes()"
+          class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-500/20"
+        >View Prototypes →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== STEP 3: CHOOSE DESIGN ========== -->
+  <div x-show="step === 'prototypes'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold mb-2" x-text="t('chooseHeader')"></h2>
+      <p class="text-sm" :class="darkMode ? 'text-slate-400' : 'text-slate-500'" x-text="t('chooseSub')"></p>
+    </div>
+
+    <!-- Download PRD on prototypes page -->
+    <div class="flex justify-center mb-6">
+      <button
+        @click="downloadPRD()"
+        class="flex items-center gap-2 text-xs px-4 py-2 rounded-lg border transition-colors"
+        :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+      >⬇ Download PRD</button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <template x-for="proto in prototypes" :key="proto.id">
+        <div
+          class="rounded-2xl border overflow-hidden transition-all duration-200 flex flex-col"
+          :class="[
+            darkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-200',
+            selectedProto === proto.id ? 'ring-2 ring-indigo-500' : ''
+          ]"
+        >
+          <!-- Proto label + title -->
+          <div class="p-5 border-b" :class="darkMode ? 'border-slate-700/50' : 'border-slate-100'">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold" x-text="proto.id"></div>
+              <h3 class="font-bold text-base" x-text="proto.title"></h3>
+            </div>
+            <p class="text-sm leading-relaxed" :class="darkMode ? 'text-slate-400' : 'text-slate-500'" x-text="proto.description"></p>
+          </div>
+
+          <!-- Tech stack -->
+          <div class="px-5 py-3 border-b" :class="darkMode ? 'border-slate-700/50' : 'border-slate-100'">
+            <p class="text-xs mono" :class="darkMode ? 'text-slate-400' : 'text-slate-500'" x-text="proto.tech"></p>
+          </div>
+
+          <!-- Pros / Cons -->
+          <div class="px-5 py-3 flex-1">
+            <div class="mb-2">
+              <p class="text-xs font-semibold text-emerald-600 mb-1">Pros</p>
+              <p class="text-xs leading-relaxed" :class="darkMode ? 'text-slate-400' : 'text-slate-500'" x-text="proto.pros"></p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-rose-500 mb-1">Cons</p>
+              <p class="text-xs leading-relaxed" :class="darkMode ? 'text-slate-400' : 'text-slate-500'" x-text="proto.cons"></p>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="p-5 flex gap-2 border-t" :class="darkMode ? 'border-slate-700/50' : 'border-slate-100'">
+            <button
+              @click="previewPrototype(proto.id)"
+              class="flex-1 py-2 rounded-lg text-xs font-medium border transition-colors"
+              :class="darkMode ? 'border-slate-600 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-600'"
+              x-text="t('openPreview')"
+            ></button>
+            <button
+              @click="selectPrototype(proto.id)"
+              class="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors"
+              :class="selectedProto === proto.id
+                ? 'bg-emerald-600 text-white'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'"
+              x-text="selectedProto === proto.id ? t('selected') : t('selectThis')"
+            ></button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ========== STEP 4: CONTINUE DISCUSSION ========== -->
+  <div x-show="step === 'continue'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+
+    <!-- Selected banner -->
+    <div class="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
+      <span class="text-emerald-500 text-lg">✓</span>
+      <div>
+        <p class="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+          You selected: <span x-text="selectedProtoName"></span>
+        </p>
+        <p class="text-xs mt-0.5" :class="darkMode ? 'text-slate-400' : 'text-slate-500'">Your engineering team is ready to go deeper.</p>
+      </div>
+    </div>
+
+    <!-- Continue input -->
+    <div
+      class="rounded-2xl border p-6 mb-6"
+      :class="darkMode ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-200'"
+    >
+      <h2 class="text-lg font-bold mb-4" x-text="t('continueHeader')"></h2>
+      <textarea
+        x-model="continueInput"
+        class="w-full min-h-[100px] p-4 rounded-xl border text-sm leading-relaxed resize-none outline-none transition-colors duration-200 focus:ring-2 focus:ring-indigo-500/30"
+        :class="darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400'"
+        :placeholder="t('continuePlaceholder')"
+      ></textarea>
+      <div class="mt-4 flex items-center gap-3">
+        <button
+          @click="continueDiscussion()"
+          :disabled="!continueInput.trim() || continueRunning"
+          class="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+          :class="continueInput.trim() && !continueRunning
+            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            : (darkMode ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed')"
+          x-text="t('continueBtn')"
+        ></button>
+        <button
+          @click="downloadPRD()"
+          class="px-4 py-2.5 rounded-xl text-sm border transition-colors"
+          :class="darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'"
+        >⬇ Download PRD</button>
+      </div>
+    </div>
+
+    <!-- Continue messages — chat timeline style -->
+    <div class="max-w-3xl mx-auto" id="continue-container">
+      <template x-for="(msg, i) in continueMessages" :key="msg.id">
+        <div
+          x-show="msg.visible"
+          x-transition:enter="transition ease-out duration-300"
+          x-transition:enter-start="opacity-0 translate-y-2"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          class="flex gap-3 mb-6"
+        >
+          <div
+            class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mono"
+            :style="`background-color: ${msg.avatarBg}; color: white;`"
+            x-text="msg.initials"
+          ></div>
+
+          <!-- Conclusion card in continue -->
+          <template x-if="msg.isConclusion">
+            <div class="flex-1 conclusion-card rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="font-bold text-sm text-indigo-500" x-text="msg.conclusionTitle"></span>
+                <span class="font-mono text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded">Claude Opus 4.6</span>
+                <span class="text-xs ml-auto" :class="darkMode ? 'text-slate-500' : 'text-slate-400'">just now</span>
+              </div>
+              <p
+                class="text-sm leading-relaxed"
+                :class="[darkMode ? 'text-slate-300' : 'text-slate-700', msg.streaming ? 'cursor-blink' : '']"
+                x-text="msg.text"
+              ></p>
+            </div>
+          </template>
+
+          <!-- Regular continue message -->
+          <template x-if="!msg.isConclusion">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="font-semibold text-sm" x-text="msg.name"></span>
+                <span class="text-xs" :class="darkMode ? 'text-slate-500' : 'text-slate-400'" x-text="msg.role"></span>
+                <span class="font-mono text-xs px-2 py-0.5 rounded" :class="darkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'" x-text="msg.model"></span>
+                <span
+                  x-show="msg.streaming"
+                  class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400 font-medium mono"
+                  x-text="t('thinking')"
+                ></span>
+                <span class="text-xs ml-auto" :class="darkMode ? 'text-slate-500' : 'text-slate-400'">just now</span>
+              </div>
+              <p
+                class="text-sm leading-relaxed"
+                :class="[darkMode ? 'text-slate-300' : 'text-slate-700', msg.streaming ? 'cursor-blink' : '']"
+                x-text="msg.text"
+              ></p>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </div>
+
+</main>
+
+<!-- ALPINE.JS APP LOGIC -->
+<script>
+function archon() {
+  return {
+    step: 'input',
+    darkMode: false,
+    lang: 'en',
+    topic: '',
+    depth: 'full',
+    engineers: [],
+    completedCount: 0,
+    debateComplete: false,
+    messages: [],
+    continueMessages: [],
+    continueInput: '',
+    continueRunning: false,
+    continueRound: 0,
+    selectedProto: null,
+    toastMsg: '',
+    toastVisible: false,
+    isStreaming: false,
+    stopped: false,
+    typingVisible: false,
+    typingAvatar: '#6366f1',
+    typingInitials: 'ML',
+    history: [],
+    showSettings: false,
+    showAnthropicKey: false,
+    generatedCode: '',
+    settings: {
+      anthropicKey: '',
+      openaiKey: '',
+      maxSessions: 50,
+      expiryDate: ''
+    },
+
+    // ---- i18n ----
+    i18n: {
+      en: {
+        tagline: 'AI Architecture Brainstorming',
+        step1: 'Configure', step2: 'Discussion', step3: 'Choose Design', step4: 'Refine',
+        placeholder: 'Describe your software idea in detail...',
+        templates: ['SaaS Dashboard Tool', 'AI Coding Assistant', 'Marketplace Platform'],
+        depth: 'Discussion depth',
+        quick: 'Quick (4 agents)', full: 'Full (8 agents)',
+        start: 'Start Discussion →',
+        powered: 'Powered by Claude Opus 4.6 · Sonnet 4.6 · Haiku 4.5',
+        agentsOf: 'engineers',
+        queued: 'Queued', thinking: 'Thinking...', done: 'Done ✓',
+        complete: 'Discussion complete — generating prototypes...',
+        chooseHeader: 'Your engineering team has prepared 3 prototype designs',
+        chooseSub: 'Open each to preview. Select the one that fits your vision.',
+        openPreview: 'Open Preview →', selectThis: 'Select This →', selected: '✓ Selected',
+        continueHeader: 'Continue the Discussion',
+        continuePlaceholder: 'What would you like to explore further? (e.g. "How do I handle the auth flow?" or "What\'s the database schema?")',
+        continueBtn: 'Continue →',
+        export: 'Export MD', share: 'Share', newSession: 'New Session',
+        darkMode: 'Dark mode', language: 'Language',
+        roles: {
+          orchestrator: 'Orchestrator', architect: 'System Architect',
+          frontend: 'Frontend Architect', ai: 'AI Engineer',
+          cost: 'Cost Engineer', security: 'Security Engineer',
+          pm: 'Product Manager', startup: 'Startup Advisor'
+        }
+      },
+      he: {
+        tagline: 'סיעור מוחות ארכיטקטורה עם AI',
+        step1: 'הגדרה', step2: 'דיון', step3: 'בחר עיצוב', step4: 'שיפור',
+        placeholder: 'תאר את רעיון התוכנה שלך בפירוט...',
+        templates: ['לוח SaaS', 'עוזר AI לקוד', 'פלטפורמת מרקטפלייס'],
+        depth: 'עומק הדיון',
+        quick: 'מהיר (4 סוכנים)', full: 'מלא (8 סוכנים)',
+        start: 'התחל דיון ←',
+        powered: 'מבוסס על Claude Opus 4.6 · Sonnet 4.6 · Haiku 4.5',
+        agentsOf: 'מהנדסים',
+        queued: 'ממתין', thinking: 'חושב...', done: 'הסתיים ✓',
+        complete: 'הדיון הסתיים — מייצר אב-טיפוסים...',
+        chooseHeader: 'הצוות שלך הכין 3 עיצובי אב-טיפוס',
+        chooseSub: 'פתח כל אחד לתצוגה מקדימה. בחר את זה שמתאים לחזון שלך.',
+        openPreview: 'פתח תצוגה ←', selectThis: 'בחר זה ←', selected: '✓ נבחר',
+        continueHeader: 'המשך את הדיון',
+        continuePlaceholder: 'מה תרצה לחקור עוד?',
+        continueBtn: 'המשך ←',
+        export: 'ייצא MD', share: 'שתף', newSession: 'סשן חדש',
+        darkMode: 'מצב לילה', language: 'שפה',
+        roles: {
+          orchestrator: 'מתאם', architect: 'אדריכל מערכת',
+          frontend: 'אדריכל ממשק', ai: 'מהנדס AI',
+          cost: 'מהנדס עלויות', security: 'מהנדס אבטחה',
+          pm: 'מנהל מוצר', startup: 'יועץ סטארטאפ'
+        }
+      }
+    },
+
+    t(key) {
+      const keys = key.split('.');
+      let val = this.i18n[this.lang];
+      for (const k of keys) {
+        if (val === undefined) return key;
+        val = val[k];
+      }
+      return val !== undefined ? val : key;
+    },
+
+    get stepList() {
+      return [this.t('step1'), this.t('step2'), this.t('step3'), this.t('step4')];
+    },
+
+    get stepIndex() {
+      const map = { input: 0, debate: 1, prototypes: 2, continue: 3 };
+      return map[this.step] ?? 0;
+    },
+
+    get selectedProtoName() {
+      const proto = this.prototypes.find(p => p.id === this.selectedProto);
+      return proto ? proto.title : '';
+    },
+
+    // Avatar colors for each engineer
+    avatarColors: {
+      ML: '#6366f1',
+      DP: '#8b5cf6',
+      PS: '#0ea5e9',
+      AC: '#10b981',
+      JK: '#f59e0b',
+      SM: '#f43f5e',
+      MJ: '#ec4899',
+      EV: '#f97316'
+    },
+
+    threadColors: {
+      ML: '#6366f1',
+      DP: '#8b5cf6',
+      PS: '#0ea5e9',
+      AC: '#10b981',
+      JK: '#f59e0b',
+      SM: '#f43f5e',
+      MJ: '#ec4899',
+      EV: '#f97316'
+    },
+
+    prototypes: [
+      {
+        id: 'A',
+        title: 'Minimal Chat Interface',
+        description: 'Clean, distraction-free chat UI. Agents appear as streaming messages. Best for users who want a pure thinking tool.',
+        tech: 'Next.js · SSE · shadcn/ui · Dark theme',
+        pros: 'Fastest to build · Lowest complexity · Focused UX',
+        cons: 'Less structured output · No dashboard features'
+      },
+      {
+        id: 'B',
+        title: 'Structured Idea Builder',
+        description: 'Step-by-step wizard. Agent outputs appear as structured cards in a grid. Tabs for Architecture, PRD, and Tech Stack artifacts.',
+        tech: 'Next.js · SSE · shadcn/ui · Card grid · Light/Dark',
+        pros: 'Clear structure · Exportable artifacts · Best UX for new users',
+        cons: 'More frontend complexity · Longer to ship'
+      },
+      {
+        id: 'C',
+        title: 'Full Dashboard',
+        description: 'Enterprise SaaS dashboard. Sidebar navigation, project history, live summary panel, API key management, client code generation.',
+        tech: 'Next.js · SSE · Full sidebar · Split panels · Analytics',
+        pros: 'Feature-complete · Professional · Scales to teams',
+        cons: '6-8 weeks to ship · High complexity · Overkill for MVP'
+      }
+    ],
+
+    getDebateScript() {
+      const topic = this.topic;
+      if (this.lang === 'he') {
+        return [
+          { initials: 'ML', name: 'Maya Levi',      role: 'Orchestrator',        model: 'Claude Opus 4.6',   text: `בוחנים את הרעיון: ${topic}. ניתוח: מוצר SaaS רב-שכבתי עם אורקסטרציה AI בזמן אמת. אני אתאם ואסנתז בסיום. דיוויד, אתה ראשון.` },
+          { initials: 'DP', name: 'David Park',     role: 'System Architect',    model: 'Claude Sonnet 4.6', text: `תודה מאיה. עבור ${topic}: Next.js 14 מונוליט על Vercel, PostgreSQL דרך Neon — serverless-compatible, ללא ops overhead. SSE לסטרימינג, לא WebSockets. Schema: users, sessions (JSONB), client_codes. Auth: magic links דרך Resend. פריה, עבורך.` },
+          { initials: 'PS', name: 'Priya Sharma',   role: 'Frontend Architect',  model: 'Claude Haiku 4.5',  text: `דיוויד, מסכימה על Next.js. אבל כל agent חייב לזרום באופן עצמאי. spinner מלא הוא product-killer. Vercel AI SDK עם useChat, CSS animation-delay לאנימציה מדורגת. שלושה שלבים: קלט נקי → דיון חי → ארטיפקטים. Tailwind + shadcn/ui. טוקן ראשון על המסך תוך 4 שניות — non-negotiable.` },
+          { initials: 'AC', name: 'Alex Chen',      role: 'AI Engineer',         model: 'Claude Sonnet 4.6', text: `מעל הארכיטקטורה של דיוויד — שכבת ה-AI היא הבידול המרכזי של ${topic}. async generator pipeline, לא for-loop. כל agent מחזיר: agentId, sections, metadata. Sonnet 4.6 ל-3 ראשיים, Haiku 4.5 ל-5 משניים. cache_control: ephemeral — חיסכון של 60-80% במטמון.` },
+          { initials: 'JK', name: 'Jordan Kim',     role: 'Cost Engineer',       model: 'Claude Haiku 4.5',  text: `לפני שמתחייבים — עלויות: Sonnet×3 + Haiku×5 ≈ $0.009–$0.016/סשן. ב-1,000 DAU × 3 סשנים = $810–$1,440/חודש. ללא tiering: $3,000–$4,500/חודש. ה-tiering של אלכס הכרחי. pgvector לcaching סמנטי — חיסכון נוסף של 20-30%.` },
+          { initials: 'SM', name: 'Sarah Mueller',  role: 'Security Engineer',   model: 'Claude Haiku 4.5',  text: `שלוש דרישות אבטחה עבור ${topic}: מפתחות API — AES-256-GCM, לא בלוג, לא לקליינט; קודי גישה — hash, לא plaintext, rate limit לפי קוד לא IP; הזרקת prompt — לסנטז ולהגביל קלט. אלו MVP, לא V2.` },
+          { initials: 'MJ', name: 'Marcus Johnson', role: 'Product Manager',     model: 'Claude Haiku 4.5',  text: `MVP עבור ${topic}: שלושה פיצ'רים — קלט רעיון, דיון multi-agent, URL לשיתוף. ה-URL הוא הוויראליות. מטריקות: <5s לתוכן ראשון, >15% שיתוף, >35% חזרה ב-7 ימים.` },
+          { initials: 'EV', name: 'Elena Vasquez',  role: 'Startup Advisor',     model: 'Claude Haiku 4.5',  text: `מרקוס וג'ורדן נגעו בדיוק: B2B2C — מפתחים משלמים, משתפים גישה עם לקוחות. $29/חודש. 5 סשנים חינם. שחרור בשבועיים. 10 משתמשים שבועיים ושיחות יומיות.` }
+        ];
+      }
+      return [
+        { initials: 'ML', name: 'Maya Levi',      role: 'Orchestrator',        model: 'Claude Opus 4.6',   text: `Alright team, let's assess ${topic}. First read: this is a multi-tenant SaaS product with real-time AI orchestration requirements. I'll coordinate and synthesize at the end. David, you're up first on architecture.` },
+        { initials: 'DP', name: 'David Park',     role: 'System Architect',    model: 'Claude Sonnet 4.6', text: `Thanks Maya. For ${topic}, my recommendation is a Next.js 14 monorepo on Vercel. PostgreSQL via Neon — serverless-compatible, generous free tier, no ops overhead. For real-time streaming: Server-Sent Events, not WebSockets. The data flow here is unidirectional — SSE does this natively and works on Vercel edge without connection state management. Auth: passwordless magic links via Resend. Schema: users, sessions (JSONB blob for agent outputs), client_codes (developer_id, max_requests, requests_used, expires_at). Start monolithic. I'll leave frontend to Priya, but I'd lean Next.js App Router all the way.` },
+        { initials: 'PS', name: 'Priya Sharma',   role: 'Frontend Architect',  model: 'Claude Haiku 4.5',  text: `David, agreed on Next.js — no debate there. But I want to push back on one assumption: don't serialize agent rendering. Even if the backend runs agents sequentially, the frontend must stream each agent's output as tokens arrive. A 30-second full-page spinner before any content is a product-killer. I'd use the Vercel AI SDK's useChat with multiple concurrent streams rendered into role-labeled cards. CSS animation-delay for staggered appearance — no artificial API delays. Three-phase UX: clean input → live agent debate cards → structured artifact tabs. Tailwind plus shadcn/ui for the component layer. First token on screen in under 4 seconds — non-negotiable.` },
+        { initials: 'AC', name: 'Alex Chen',      role: 'AI Engineer',         model: 'Claude Sonnet 4.6', text: `Building on David's data model — the AI orchestration layer is the core product differentiator for ${topic}. Implement as an async generator pipeline, not a for-loop. Each agent is a typed function yielding: { agentId, sections: [{title, content, citations}], metadata: {model, inputTokens, outputTokens, latencyMs} }. Model routing in a single config file: Orchestrator and primary reasoning agents get Sonnet 4.6; summarization, cost, security, PM roles get Haiku 4.5. Add cache_control: ephemeral on shared system context across agents in a session — at scale you'll see 60-80% cache hit rates. No LangChain overhead. Raw Anthropic SDK calls are cleaner and the latency difference is measurable.` },
+        { initials: 'JK', name: 'Jordan Kim',     role: 'Cost Engineer',       model: 'Claude Haiku 4.5',  text: `Before we commit further to David's stack, let me run the numbers. With Alex's model tiering — 3 Sonnet 4.6 agents plus 5 Haiku 4.5 agents — average session cost is $0.009 to $0.016 depending on response length. At 1,000 DAU running 3 sessions per day: $27 to $48 per day, $810 to $1,440 per month. Without tiering, you're looking at $3,000 to $4,500 per month for the same usage. Alex's tiering isn't optimization — it's the difference between a viable business and burning cash. Add semantic similarity caching via pgvector for repeated idea patterns — another 20 to 30 percent reduction. One thing nobody's mentioned: rate-limit the free tier strictly. Unlimited free usage will bankrupt you before you get to Series A.` },
+        { initials: 'SM', name: 'Sarah Mueller',  role: 'Security Engineer',   model: 'Claude Haiku 4.5',  text: `I've been listening to the architecture debate and there are three non-negotiable security requirements for ${topic} that aren't in David's schema yet. First: API key storage. Encrypt with AES-256-GCM, server-side key in environment variables, decrypt only in-memory at request time, never log, never return to client. Second: client access codes — hash them in the database, never store plaintext, rate-limit by code ID not by IP address (IPs change; codes don't). Third: prompt injection. Users will attempt to override agent personas via the idea input field. Sanitize and length-limit all user input before injecting into system prompts. Set max_tokens per agent call. These are not V2 concerns — one incident here and you're done.` },
+        { initials: 'MJ', name: 'Marcus Johnson', role: 'Product Manager',     model: 'Claude Haiku 4.5',  text: `Technical debate aside for a moment — let me bring this back to what actually ships. MVP for ${topic} is three features: idea input, multi-agent debate output, shareable URL. The shareable URL is the viral loop — when a user sends their architecture analysis to a teammate, that teammate becomes your next user. It costs nothing to build. Track three metrics at launch: time-to-first-token under 5 seconds, session share rate above 15 percent, 7-day return rate above 35 percent. If those numbers are green, you have product-market fit. Everything else — collaboration, custom agents, code export — is after you prove that. Sarah's security points are MVP requirements. Jordan's cost model needs to be in the schema from day one.` },
+        { initials: 'EV', name: 'Elena Vasquez',  role: 'Startup Advisor',     model: 'Claude Haiku 4.5',  text: `Marcus and Jordan both nailed the core tension: you want users to love this before you worry about scaling it, but the cost model has to work from the start or you won't survive long enough to iterate. The B2B2C angle — developers pay, share access with clients using their API keys — is the growth engine. That's your distribution channel built into the product. For ${topic}: price at $29 per month for Pro with own API keys. Free tier at 5 sessions per month using your keys, Haiku only. Ship in two weeks. Find 10 developers who will use it every week and talk to them constantly. Don't build features they haven't asked for twice.` }
+      ];
+    },
+
+    getSynthesisText() {
+      const topic = this.topic;
+      if (this.lang === 'he') {
+        return `החלטה סופית עבור ${topic}: Next.js 14 מונוליט על Vercel, PostgreSQL דרך Neon, SSE לסטרימינג, magic links דרך Resend. tiering מחייב מיום ראשון: Sonnet 4.6 לאורקסטרטור, אדריכל מערכת, מהנדס AI; Haiku 4.5 ליתר חמישה. auth אמיתי, session persistence עם JSONB, הצפנת AES-256-GCM, rate limiting לפי קוד. הצוות הכין שלושה אב-טיפוסים לבחינה.`;
+      }
+      return `Having heard from the full team, here is the decision record for ${topic}. Recommended architecture: Next.js 14 monolith on Vercel, PostgreSQL via Neon, SSE for streaming, passwordless magic links via Resend. Model tiering mandatory from day one: Sonnet 4.6 for Orchestrator, System Architect, AI Engineer; Haiku 4.5 for the remaining five. Real auth — not temp codes. Session persistence with JSONB storage. AES-256-GCM key encryption. Rate limiting by code ID. The team has prepared three prototype designs based on this architecture. Review them below and select the direction you want to pursue.`;
+    },
+
+    getConclusionText(round) {
+      const topic = this.topic;
+      const protoName = this.selectedProtoName;
+      if (round === 0) {
+        return `Based on our full team discussion of ${topic}: Recommended Architecture: Option A — Next.js 14 + SSE + Neon + Resend + model tiering (Sonnet×3 + Haiku×5). Estimated session cost: ~$0.012. Time to ship: 2-3 weeks. Three prototype designs are ready for your review below.`;
+      }
+      return `Based on your question and the team's input, here is the updated recommendation: The team has addressed your follow-up and reached consensus on the implementation details discussed above. The selected prototype approach (${this.selectedProto} — ${protoName}) remains the recommended direction. Ready for your next question or refinement.`;
+    },
+
+    buildEngineers() {
+      const scripts = this.getDebateScript();
+      const count = this.depth === 'quick' ? 4 : 8;
+      return scripts.slice(0, count).map((s, idx) => ({
+        id: idx,
+        name: s.name,
+        role: s.role,
+        model: s.model,
+        initials: s.initials,
+        text: s.text,
+        avatarBg: this.avatarColors[s.initials] || '#6366f1',
+        threadColor: this.threadColors[s.initials] || '#6366f1'
+      }));
+    },
+
+    msgIdCounter: 0,
+    newMsgId() { return ++this.msgIdCounter; },
+
+    init() {
+      this.$watch('lang', val => {
+        document.documentElement.lang = val;
+        document.documentElement.dir = val === 'he' ? 'rtl' : 'ltr';
+      });
+    },
+
+    toggleLang() {
+      this.lang = this.lang === 'en' ? 'he' : 'en';
+    },
+
+    goBack() {
+      if (this.history.length > 0) {
+        this.step = this.history.pop();
+      }
+    },
+
+    navigateTo(targetStep) {
+      const order = ['input', 'debate', 'prototypes', 'continue'];
+      const currentIdx = order.indexOf(this.step);
+      const targetIdx = order.indexOf(targetStep);
+      if (targetIdx < currentIdx) {
+        this.history.push(this.step);
+        this.step = targetStep;
+      }
+    },
+
+    stopStreaming() {
+      this.stopped = true;
+    },
+
+    scrollChatToBottom() {
+      this.$nextTick(() => {
+        const container = document.getElementById('chat-container');
+        if (container) {
+          container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      });
+    },
+
+    async start() {
+      if (!this.topic.trim()) return;
+      this.history.push('input');
+      this.completedCount = 0;
+      this.debateComplete = false;
+      this.messages = [];
+      this.stopped = false;
+      this.isStreaming = true;
+      this.step = 'debate';
+
+      const response = await fetch('/api/debate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: this.topic, depth: this.depth }),
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done || this.stopped) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const block of lines) {
+          const eventMatch = block.match(/^event: (\w+)/);
+          const dataMatch  = block.match(/\ndata: (.+)/s);
+          if (!eventMatch || !dataMatch) continue;
+
+          const event = eventMatch[1];
+          const data  = JSON.parse(dataMatch[1]);
+
+          if (event === 'agent_start') {
+            this.typingVisible = false;
+            this.messages.push({
+              id: this.newMsgId(),
+              name: data.name, role: data.role, model: data.model,
+              initials: data.initials, avatarBg: data.avatarBg,
+              threadColor: this.threadColors[data.initials] || '#6366f1',
+              text: '', streaming: true, visible: true, isConclusion: false,
+            });
+            this.scrollChatToBottom();
+          }
+
+          else if (event === 'token') {
+            const msg = this.messages.find(m => 
+              m.initials === data.id.slice(0,2).toUpperCase() && m.streaming
+            );
+            if (msg) { msg.text += data.token; this.scrollChatToBottom(); }
+          }
+
+          else if (event === 'agent_done') {
+            const msg = this.messages.find(m => m.streaming);
+            if (msg) { msg.streaming = false; this.completedCount++; }
+          }
+
+          else if (event === 'synthesis_start') {
+            this.messages.push({
+              id: this.newMsgId(), name: 'Maya Levi',
+              role: 'Orchestrator — Final Synthesis', model: 'Claude Opus 4.6',
+              initials: 'ML', avatarBg: this.avatarColors['ML'],
+              threadColor: this.threadColors['ML'],
+              text: '', streaming: true, visible: true, isConclusion: false,
+            });
+          }
+
+          else if (event === 'synthesis_token') {
+            const last = this.messages[this.messages.length - 1];
+            if (last) last.text += data.token;
+            this.scrollChatToBottom();
+          }
+
+          else if (event === 'done') {
+            const last = this.messages[this.messages.length - 1];
+            if (last) last.streaming = false;
+            this.isStreaming = false;
+            this.debateComplete = true;
+            this.scrollChatToBottom();
+          }
+        }
+      }
+    },
+
+    async appendConclusion(round) {
+      this.typingAvatar = this.avatarColors['ML'];
+      this.typingInitials = 'ML';
+      this.typingVisible = true;
+      await this.sleep(700);
+      this.typingVisible = false;
+
+      const conclusionMsg = {
+        id: this.newMsgId(),
+        initials: 'ML',
+        avatarBg: this.avatarColors['ML'],
+        isConclusion: true,
+        conclusionTitle: round === 0 ? '🎯 Round Conclusion' : `🎯 Round ${round + 1} Conclusion`,
+        text: '',
+        streaming: true,
+        visible: true
+      };
+
+      // Add to the right array
+      if (round === 0) {
+        this.messages.push(conclusionMsg);
+        const idx = this.messages.length - 1;
+        this.scrollChatToBottom();
+        const words = this.getConclusionText(round).split(' ');
+        let disp = '';
+        for (let w = 0; w < words.length; w++) {
+          disp += (w === 0 ? '' : ' ') + words[w];
+          this.messages[idx].text = disp;
+          this.scrollChatToBottom();
+          await this.sleep(55);
+        }
+        this.messages[idx].streaming = false;
+      } else {
+        this.continueMessages.push(conclusionMsg);
+        const idx = this.continueMessages.length - 1;
+        this.scrollChatToBottom();
+        const words = this.getConclusionText(round).split(' ');
+        let disp = '';
+        for (let w = 0; w < words.length; w++) {
+          disp += (w === 0 ? '' : ' ') + words[w];
+          this.continueMessages[idx].text = disp;
+          this.scrollChatToBottom();
+          await this.sleep(55);
+        }
+        this.continueMessages[idx].streaming = false;
+      }
+    },
+
+    goToPrototypes() {
+      this.history.push('debate');
+      this.step = 'prototypes';
+    },
+
+    selectPrototype(id) {
+      this.selectedProto = id;
+      this.history.push('prototypes');
+      this.step = 'continue';
+    },
+
+    previewPrototype(id) {
+      const html = this.generateProtoHTML(id);
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    },
+
+    generateProtoHTML(id) {
+      const topic = this.topic || 'Your Project';
+      if (id === 'A') return this.protoA(topic);
+      if (id === 'B') return this.protoB(topic);
+      if (id === 'C') return this.protoC(topic);
+      return '';
+    },
+
+    async continueDiscussion() {
+      if (!this.continueInput.trim() || this.continueRunning) return;
+      this.continueRunning = true;
+      this.continueRound++;
+      const question = this.continueInput;
+      const protoName = this.selectedProtoName;
+      this.continueInput = '';
+
+      const responses = [
+        {
+          initials: 'ML', name: 'Maya Levi', role: 'Orchestrator', model: 'Claude Opus 4.6',
+          avatarBg: this.avatarColors['ML'],
+          text: `Good follow-up on "${question}". Routing to David and Sarah for technical depth. They'll give you the most relevant guidance for the ${protoName} approach you've selected.`
+        },
+        {
+          initials: 'DP', name: 'David Park', role: 'System Architect', model: 'Claude Sonnet 4.6',
+          avatarBg: this.avatarColors['DP'],
+          text: `On "${question}" for the ${protoName} approach: given our architecture decision to use Next.js 14 with Neon PostgreSQL and SSE streaming, the most direct path is to add a dedicated route handler at /api/stream/[sessionId]. Each request opens an SSE connection, the orchestrator spawns agent tasks as promises, and each agent writes to the stream via res.write('data: ...\\n\\n'). The session state is persisted as a JSONB column so reconnecting clients can replay from any checkpoint. This keeps the implementation clean and avoids any WebSocket complexity on Vercel's edge runtime.`
+        },
+        {
+          initials: 'AC', name: 'Alex Chen', role: 'AI Engineer', model: 'Claude Sonnet 4.6',
+          avatarBg: this.avatarColors['AC'],
+          text: `Adding to David's point — for the ${protoName} interface specifically, use an AbortController tied to the component's cleanup function so streams cancel cleanly on navigation. The async generator pattern means each agent's output resolves independently, so the UI updates as each finishes rather than waiting for the batch.`
+        }
+      ];
+
+      for (let i = 0; i < responses.length; i++) {
+        const r = responses[i];
+
+        // Typing indicator
+        this.typingAvatar = r.avatarBg;
+        this.typingInitials = r.initials;
+        this.typingVisible = true;
+        await this.sleep(800);
+        this.typingVisible = false;
+
+        const msg = {
+          id: this.newMsgId(),
+          name: r.name,
+          role: r.role,
+          model: r.model,
+          initials: r.initials,
+          avatarBg: r.avatarBg,
+          text: '',
+          streaming: true,
+          visible: true,
+          isConclusion: false
+        };
+        this.continueMessages.push(msg);
+        const idx = this.continueMessages.length - 1;
+        this.scrollChatToBottom();
+
+        const words = r.text.split(' ');
+        let displayed = '';
+        for (let w = 0; w < words.length; w++) {
+          displayed += (w === 0 ? '' : ' ') + words[w];
+          this.continueMessages[idx].text = displayed;
+          this.scrollChatToBottom();
+          await this.sleep(55);
+        }
+        this.continueMessages[idx].streaming = false;
+        await this.sleep(600);
+      }
+
+      // Conclusion after every round
+      await this.appendConclusion(this.continueRound);
+
+      this.continueRunning = false;
+    },
+
+    exportMd() {
+      const lines = [
+        `# ARCHON — Architecture Analysis\n`,
+        `**Topic:** ${this.topic}\n`,
+        `**Generated:** ${new Date().toISOString()}\n`,
+        `---\n`,
+        `## Debate Transcript\n`
+      ];
+      for (const msg of this.messages) {
+        if (!msg.isConclusion) {
+          lines.push(`### ${msg.name} (${msg.role} · ${msg.model})\n`);
+          lines.push(`${msg.text}\n`);
+        }
+      }
+      lines.push(`---\n`);
+      lines.push(`## Architecture Decision Record\n`);
+      lines.push(`- **Framework:** Next.js 14 App Router on Vercel\n`);
+      lines.push(`- **Database:** PostgreSQL via Neon (serverless, JSONB sessions)\n`);
+      lines.push(`- **Streaming:** Server-Sent Events\n`);
+      lines.push(`- **Auth:** Passwordless magic links via Resend\n`);
+      lines.push(`- **AI Routing:** Claude Sonnet 4.6 × 3 + Claude Haiku 4.5 × 5\n`);
+      lines.push(`- **Estimated cost:** $0.009–$0.016 per session\n`);
+      lines.push(`- **Security:** AES-256-GCM key encryption, rate-limit by code ID\n`);
+      lines.push(`\n*Generated by ARCHON — AI Architecture Brainstorming*\n`);
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `archon-${this.topic.replace(/\s+/g, '-').toLowerCase().slice(0, 40)}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast(this.lang === 'he' ? 'הקובץ הורד!' : 'Export downloaded!');
+    },
+
+    downloadPRD() {
+      const topic = this.topic || 'Your Project';
+      const slug = topic.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 40);
+      const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      const prd = `# Product Requirements Document
+## ${topic}
+Generated by ARCHON · ${date}
+
+---
+
+## Executive Summary
+${topic} is a multi-tenant SaaS platform powered by a multi-agent AI pipeline. The system orchestrates eight specialized AI engineers (Claude Opus 4.6, Sonnet 4.6, and Haiku 4.5) to analyze software ideas and produce actionable architecture decisions. The platform targets developers who need rapid, expert-level architecture validation before committing engineering resources.
+
+## Problem Statement
+Developers and startup founders spend significant time and money consulting architects or making architecture decisions based on incomplete information. ${topic} solves this by providing instant, parallel analysis from multiple AI engineering perspectives — architecture, frontend, AI pipeline, cost, security, product, and startup advisory — in a single streaming session.
+
+## Target Users
+- **Developer Users**: Software engineers and CTOs who need architecture validation and want to explore tradeoffs before building
+- **Client Users**: Non-technical stakeholders who receive shareable session URLs from developer users and review the analysis
+
+## Recommended Architecture
+**Decision: Option A — Next.js Monolith (Modified)**
+
+### Tech Stack
+| Layer | Technology | Rationale |
+|---|---|---|
+| Frontend | Next.js 14 (App Router) | SSR, streaming, Vercel-native |
+| Styling | Tailwind CSS + shadcn/ui | Fast, consistent UI |
+| Backend | Next.js API Routes | Single deployable unit |
+| Database | PostgreSQL via Neon | Serverless-compatible, free tier |
+| Real-time | Server-Sent Events (SSE) | Unidirectional, works on Vercel edge |
+| Auth | Magic links via Resend | No password storage, low friction |
+| AI (Primary) | Claude Sonnet 4.6 | Orchestrator, Architect, AI Engineer |
+| AI (Secondary) | Claude Haiku 4.5 | Cost, Security, PM, Advisor roles |
+| Deployment | Vercel | Zero-config, global CDN |
+| Key Encryption | AES-256-GCM | In-memory decryption only |
+
+### Architecture Diagram (Text)
+\`\`\`
+Browser → Next.js on Vercel → SSE → Agent Pipeline → Neon PostgreSQL + External APIs
+\`\`\`
+
+## Core Features (MVP)
+### Phase 1 — Week 1-2 (Stance-Only MVP)
+- [ ] Magic link authentication (Resend)
+- [ ] Idea input with template suggestions
+- [ ] Single-agent "Stance" response (validate streaming pipeline)
+- [ ] Session persistence (JSONB in PostgreSQL)
+- [ ] Shareable session URLs
+
+### Phase 2 — Week 3-4 (Full Multi-Agent)
+- [ ] 8-agent debate pipeline (async generator)
+- [ ] Model tiering (Sonnet × 3, Haiku × 5)
+- [ ] Client access code system (developer generates, client uses)
+- [ ] Rate limiting by code ID (database counter)
+- [ ] API key management (AES-256-GCM encrypted storage)
+
+### Phase 3 — Week 5-6 (Polish + Launch)
+- [ ] Prototype output generation (3 design options)
+- [ ] Export to Markdown / PRD
+- [ ] Dark mode + Hebrew localization
+- [ ] Error handling + retry logic (2 retries per agent, graceful degradation)
+- [ ] Usage analytics (token count, cost per session)
+
+## Security Requirements
+- API keys: AES-256-GCM encrypted, never logged, never returned to client
+- Client codes: bcrypt-hashed in DB, rate-limited by code ID
+- Prompt injection: sanitize + length-limit all user input
+- Max tokens per agent: enforce to prevent runaway costs
+- CSP headers on all responses
+
+## Cost Model
+| Scenario | Daily Cost | Monthly Cost |
+|---|---|---|
+| 100 DAU × 3 sessions | $0.40–0.70 | $12–21 |
+| 1,000 DAU × 3 sessions | $4.00–7.00 | $120–210 |
+| 1,000 DAU (no tiering) | $13–18 | $390–540 |
+
+*With model tiering (Sonnet×3 + Haiku×5). Without tiering costs 3-4× more.*
+
+## Success Metrics
+| Metric | Target | Timeline |
+|---|---|---|
+| Time to first token | < 5 seconds | Week 3 |
+| Session share rate | > 15% | Week 6 |
+| 7-day return rate | > 35% | Month 2 |
+| API cost per session | < $0.015 | Week 3 |
+| DAU | 1,000 | Month 3 |
+
+## Out of Scope (V1)
+- Real-time collaboration / multi-user editing
+- WebSocket infrastructure
+- Custom agent creation by users
+- Mobile native apps
+- PDF export
+- Social features (follow, comment)
+- CodeSandbox / live code embeds
+
+## Engineering Notes from Team Debate
+- **David Park (System Architect)**: "Start monolithic. SSE over WebSockets — unidirectional flow doesn't need bidirectional sockets."
+- **Priya Sharma (Frontend Architect)**: "Never buffer a full response before rendering. First token in <4s is non-negotiable."
+- **Alex Chen (AI Engineer)**: "Async generator pipeline. Typed agent output schema. cache_control on shared context."
+- **Jordan Kim (Cost Engineer)**: "Model tiering isn't optional — it's the difference between a viable business and burning cash."
+- **Sarah Mueller (Security Engineer)**: "Prompt injection prevention is MVP, not V2."
+- **Marcus Johnson (Product Manager)**: "Three features, shareable URL, measure retention."
+- **Elena Vasquez (Startup Advisor)**: "Ship in 2 weeks. 10 weekly users. Talk to them constantly."
+
+---
+*Generated by ARCHON AI Architecture Brainstorming Platform*
+*Debate participants: Claude Opus 4.6 (Orchestrator) · Claude Sonnet 4.6 (Architecture, AI) · Claude Haiku 4.5 (Cost, Security, PM, Advisory)*
+`;
+
+      const blob = new Blob([prd], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ARCHON_PRD_${slug}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('PRD downloaded!');
+    },
+
+    share() {
+      const id = Math.random().toString(36).slice(2, 10);
+      const url = `https://archon.dev/s/${id}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          this.showToast(this.lang === 'he' ? 'הקישור הועתק!' : 'Link copied!');
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        this.showToast(this.lang === 'he' ? 'הקישור הועתק!' : 'Link copied!');
+      }
+    },
+
+    generateClientCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      let code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      this.generatedCode = code;
+    },
+
+    copyClientCode() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(this.generatedCode).then(() => {
+          this.showToast('Code copied!');
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = this.generatedCode;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        this.showToast('Code copied!');
+      }
+    },
+
+    saveSettings() {
+      this.showSettings = false;
+      this.showToast('Settings saved');
+    },
+
+    showToast(msg) {
+      this.toastMsg = msg;
+      this.toastVisible = true;
+      setTimeout(() => { this.toastVisible = false; }, 2500);
+    },
+
+    sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    reset() {
+      const confirmMsg = this.lang === 'he' ? 'האם לאפס את הסשן?' : 'Start a new session? Current progress will be lost.';
+      if (!confirm(confirmMsg)) return;
+      this.step = 'input';
+      this.topic = '';
+      this.engineers = [];
+      this.completedCount = 0;
+      this.debateComplete = false;
+      this.messages = [];
+      this.continueMessages = [];
+      this.continueInput = '';
+      this.continueRunning = false;
+      this.continueRound = 0;
+      this.selectedProto = null;
+      this.isStreaming = false;
+      this.stopped = false;
+      this.typingVisible = false;
+      this.history = [];
+    },
+
+    // ---- Prototype HTML generators (preserved) ----
+    protoA(topic) {
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${topic} AI — Minimal Chat</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{display:flex;height:100vh;background:#020617;color:#e2e8f0}
+.sidebar{width:220px;background:#0f172a;border-right:1px solid #1e293b;display:flex;flex-direction:column;padding:16px}
+.logo{font-size:15px;font-weight:700;color:#818cf8;margin-bottom:20px;letter-spacing:-0.5px}
+.sidebar-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#475569;margin-bottom:8px;font-weight:600}
+.session-item{padding:8px 10px;border-radius:8px;font-size:12px;color:#94a3b8;margin-bottom:4px;cursor:pointer;transition:background 0.15s}
+.session-item:hover{background:#1e293b}
+.session-item.active{background:#1e293b;color:#e2e8f0}
+.main{flex:1;display:flex;flex-direction:column}
+.topbar{padding:12px 20px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:14px;font-weight:600;color:#e2e8f0}
+.topbar-subtitle{font-size:11px;color:#475569}
+.chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.msg{display:flex;gap:12px;align-items:flex-start}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;font-family:monospace}
+.av-violet{background:#4c1d95;color:#c4b5fd}
+.av-emerald{background:#064e3b;color:#6ee7b7}
+.av-indigo{background:#1e1b4b;color:#a5b4fc}
+.msg-body{flex:1}
+.msg-name{font-size:11px;font-weight:600;color:#94a3b8;margin-bottom:4px}
+.msg-name span{font-size:10px;background:#1e293b;color:#64748b;padding:1px 6px;border-radius:4px;margin-left:6px;font-family:monospace}
+.msg-text{font-size:13px;line-height:1.65;color:#cbd5e1}
+.inputbar{padding:16px 20px;border-top:1px solid #1e293b;display:flex;gap:10px}
+.inputbar input{flex:1;background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px 14px;color:#e2e8f0;font-size:13px;outline:none}
+.inputbar input:focus{border-color:#6366f1}
+.send-btn{background:#6366f1;color:white;border:none;border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.footer{text-align:center;padding:6px;font-size:10px;color:#334155;border-top:1px solid #1e293b}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">${topic.slice(0,12)} AI</div>
+  <div class="sidebar-label">Sessions</div>
+  <div class="session-item active">Architecture Review</div>
+  <div class="session-item">Auth flow deep-dive</div>
+  <div class="session-item">Cost optimization</div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div><div class="topbar-title">${topic}</div><div class="topbar-subtitle">3 agents · Session #1</div></div>
+    <div style="font-size:11px;color:#475569">Powered by ARCHON</div>
+  </div>
+  <div class="chat">
+    <div class="msg">
+      <div class="avatar av-violet">DP</div>
+      <div class="msg-body">
+        <div class="msg-name">David Park <span>System Architect · Sonnet 4.6</span></div>
+        <div class="msg-text">For <strong>${topic}</strong>, I recommend a Next.js 14 monorepo on Vercel. PostgreSQL via Neon. Real-time streaming via SSE, not WebSockets. Start monolithic.</div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="avatar av-emerald">AC</div>
+      <div class="msg-body">
+        <div class="msg-name">Alex Chen <span>AI Engineer · Sonnet 4.6</span></div>
+        <div class="msg-text">Async generator pipeline. Sonnet 4.6 × 3, Haiku 4.5 × 5. cache_control: ephemeral — 60–80% hit rate at scale. Skip LangChain.</div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="avatar av-indigo">ML</div>
+      <div class="msg-body">
+        <div class="msg-name">Maya Levi <span>Orchestrator · Opus 4.6</span></div>
+        <div class="msg-text">Decision: Next.js 14 + Vercel + Neon + SSE + Resend. Haiku/Sonnet tiering from day one. AES-256-GCM key encryption. Rate limit by code ID. Ship the shareable URL as MVP.</div>
+      </div>
+    </div>
+  </div>
+  <div class="inputbar">
+    <input type="text" placeholder="Ask a follow-up..." />
+    <button class="send-btn">Send</button>
+  </div>
+  <div class="footer">Built with ARCHON · Prototype A — Minimal Chat</div>
+</div>
+</body>
+</html>`;
+    },
+
+    protoB(topic) {
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${topic} — Structured Builder</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:#f8fafc;color:#0f172a;min-height:100vh;display:flex;flex-direction:column}
+header{background:white;border-bottom:1px solid #e2e8f0;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:16px;font-weight:700;color:#0f172a}
+.logo span{color:#6366f1}
+.steps{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
+.step{padding:7px 16px;font-size:12px;font-weight:500;color:#64748b;background:white}
+.step.active{background:#6366f1;color:white}
+.step.done{background:#10b981;color:white}
+main{flex:1;padding:24px;max-width:1100px;margin:0 auto;width:100%}
+h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.subtitle{font-size:13px;color:#64748b;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+.card{background:white;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;border-left:3px solid}
+.card-c1{border-left-color:#6366f1}.card-c2{border-left-color:#8b5cf6}.card-c3{border-left-color:#0ea5e9}.card-c4{border-left-color:#10b981}
+.card-head{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:monospace;flex-shrink:0}
+.av-in{background:#e0e7ff;color:#4338ca}.av-vi{background:#ede9fe;color:#6d28d9}.av-sk{background:#e0f2fe;color:#0369a1}.av-em{background:#d1fae5;color:#065f46}
+.card-name{font-size:12px;font-weight:600}.card-role{font-size:10px;color:#94a3b8;font-family:monospace}
+.badge{font-size:9px;padding:1px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;font-family:monospace;margin-left:auto}
+.badge.done{background:#d1fae5;color:#065f46}
+.card-body{padding:12px 14px;font-size:12px;line-height:1.6;color:#475569}
+.tabs{display:flex;border-bottom:2px solid #e2e8f0;margin-bottom:16px}
+.tab{padding:8px 18px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:#6366f1;border-bottom-color:#6366f1}
+.artifact{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+.artifact h3{font-size:13px;font-weight:600;margin-bottom:10px}
+.artifact-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:12px;color:#475569}
+.dot{width:6px;height:6px;border-radius:50%;background:#6366f1;margin-top:5px;flex-shrink:0}
+footer{text-align:center;padding:10px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;background:white}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">${topic.slice(0,16)}<span> Builder</span></div>
+  <div class="steps"><div class="step done">1 Configure</div><div class="step active">2 Discussion</div><div class="step">3 Choose Design</div></div>
+</header>
+<main>
+  <h2>${topic}</h2>
+  <div class="subtitle">4 engineers have contributed · Architecture phase complete</div>
+  <div class="grid">
+    <div class="card card-c1"><div class="card-head"><div class="av av-in">ML</div><div><div class="card-name">Maya Levi</div><div class="card-role">Orchestrator · Opus 4.6</div></div><div class="badge done">Done ✓</div></div><div class="card-body">Coordinating the team for <strong>${topic}</strong>. Multi-tenant SaaS with AI orchestration.</div></div>
+    <div class="card card-c2"><div class="card-head"><div class="av av-vi">DP</div><div><div class="card-name">David Park</div><div class="card-role">System Architect · Sonnet 4.6</div></div><div class="badge done">Done ✓</div></div><div class="card-body">Next.js 14 on Vercel, Neon PostgreSQL, SSE streaming. Passwordless auth via Resend. Monolith first.</div></div>
+    <div class="card card-c3"><div class="card-head"><div class="av av-sk">PS</div><div><div class="card-name">Priya Sharma</div><div class="card-role">Frontend Architect · Haiku 4.5</div></div><div class="badge done">Done ✓</div></div><div class="card-body">Each agent streams independently. No full-page spinner. First token in 4s — non-negotiable.</div></div>
+    <div class="card card-c4"><div class="card-head"><div class="av av-em">AC</div><div><div class="card-name">Alex Chen</div><div class="card-role">AI Engineer · Sonnet 4.6</div></div><div class="badge done">Done ✓</div></div><div class="card-body">Async generator pipeline. Sonnet 4.6 × 3 top agents, Haiku 4.5 × 5. cache_control: ephemeral.</div></div>
+  </div>
+  <div class="tabs"><div class="tab active">Architecture</div><div class="tab">PRD</div><div class="tab">Tech Stack</div></div>
+  <div class="artifact">
+    <h3>Architecture Decision Record — ${topic}</h3>
+    <div class="artifact-item"><div class="dot"></div><div><strong>Framework:</strong> Next.js 14 App Router, monolith on Vercel</div></div>
+    <div class="artifact-item"><div class="dot"></div><div><strong>Database:</strong> PostgreSQL via Neon (serverless, JSONB for sessions)</div></div>
+    <div class="artifact-item"><div class="dot"></div><div><strong>Streaming:</strong> Server-Sent Events — unidirectional, edge-compatible</div></div>
+    <div class="artifact-item"><div class="dot"></div><div><strong>Auth:</strong> Passwordless magic links via Resend</div></div>
+    <div class="artifact-item"><div class="dot"></div><div><strong>AI Routing:</strong> Sonnet 4.6 × 3 + Haiku 4.5 × 5 — $0.012/session avg</div></div>
+    <div class="artifact-item"><div class="dot"></div><div><strong>Security:</strong> AES-256-GCM key encryption, rate-limit by code ID</div></div>
+  </div>
+</main>
+<footer>Built with ARCHON · Prototype B — Structured Builder</footer>
+</body>
+</html>`;
+    },
+
+    protoC(topic) {
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${topic} — Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{display:flex;flex-direction:column;height:100vh;background:#020617;color:#e2e8f0}
+.topbar{background:#0f172a;border-bottom:1px solid #1e293b;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.brand{font-size:14px;font-weight:700;color:#818cf8;font-family:monospace}
+.topbar-actions{display:flex;gap:8px}
+.btn{padding:6px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #1e293b;background:#1e293b;color:#94a3b8}
+.btn.primary{background:#6366f1;border-color:#6366f1;color:white}
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:200px;background:#0f172a;border-right:1px solid #1e293b;padding:14px;overflow-y:auto;flex-shrink:0}
+.sidebar-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#475569;margin-bottom:8px;font-weight:600}
+.proj-item{padding:7px 9px;border-radius:7px;font-size:11px;color:#94a3b8;margin-bottom:3px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.proj-item:hover{background:#1e293b}.proj-item.active{background:#1e293b;color:#e2e8f0}
+.proj-dot{width:6px;height:6px;border-radius:50%}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.timeline{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.tl-msg{display:flex;gap:10px}
+.tl-av{width:28px;height:28px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:monospace}
+.tl-body{flex:1}
+.tl-meta{font-size:10px;color:#475569;margin-bottom:3px}
+.tl-meta strong{color:#94a3b8}
+.tl-text{font-size:12px;line-height:1.6;color:#cbd5e1}
+.right-panel{width:240px;background:#0f172a;border-left:1px solid #1e293b;padding:14px;overflow-y:auto;flex-shrink:0}
+.panel-title{font-size:12px;font-weight:700;color:#e2e8f0;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #1e293b}
+.summary-section{margin-bottom:14px}
+.summary-label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#475569;margin-bottom:6px;font-weight:600}
+.summary-item{font-size:11px;color:#94a3b8;margin-bottom:4px;line-height:1.5}
+.summary-item strong{color:#e2e8f0}
+.statusbar{background:#0f172a;border-top:1px solid #1e293b;padding:6px 16px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#475569;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">ARCHON / ${topic.slice(0,18)}</div>
+  <div class="topbar-actions"><button class="btn">↗ Share</button><button class="btn">⬇ Export</button><button class="btn primary">+ New Session</button></div>
+</div>
+<div class="body">
+  <div class="sidebar">
+    <div style="margin-bottom:18px"><div class="sidebar-label">Projects</div>
+      <div class="proj-item active"><div class="proj-dot" style="background:#6366f1"></div>${topic.slice(0,16)}</div>
+      <div class="proj-item"><div class="proj-dot" style="background:#10b981"></div>Auth Service</div>
+      <div class="proj-item"><div class="proj-dot" style="background:#f59e0b"></div>Cost Analysis</div>
+    </div>
+    <div><div class="sidebar-label">API Keys</div><div class="proj-item">sk-ant-••••••••</div></div>
+  </div>
+  <div class="main">
+    <div class="timeline">
+      <div class="tl-msg"><div class="tl-av" style="background:#1e1b4b;color:#a5b4fc">ML</div><div class="tl-body"><div class="tl-meta"><strong>Maya Levi</strong> · Orchestrator · Opus 4.6</div><div class="tl-text">Alright team, assessing <strong>${topic}</strong>. Multi-tenant SaaS with real-time AI orchestration. David on architecture first.</div></div></div>
+      <div class="tl-msg"><div class="tl-av" style="background:#2e1065;color:#c4b5fd">DP</div><div class="tl-body"><div class="tl-meta"><strong>David Park</strong> · System Architect · Sonnet 4.6</div><div class="tl-text">Next.js 14 on Vercel, Neon PostgreSQL, SSE for streaming. Schema: users, sessions, client_codes. Passwordless auth via Resend. Monolith first.</div></div></div>
+      <div class="tl-msg"><div class="tl-av" style="background:#164e63;color:#7dd3fc">PS</div><div class="tl-body"><div class="tl-meta"><strong>Priya Sharma</strong> · Frontend Architect · Haiku 4.5</div><div class="tl-text">Each agent streams independently. No full-page spinner. First token in 4s — non-negotiable.</div></div></div>
+      <div class="tl-msg"><div class="tl-av" style="background:#064e3b;color:#6ee7b7">AC</div><div class="tl-body"><div class="tl-meta"><strong>Alex Chen</strong> · AI Engineer · Sonnet 4.6</div><div class="tl-text">Async generator pipeline. cache_control: ephemeral. Sonnet 4.6 × 3, Haiku 4.5 × 5. 60–80% cache hit at scale.</div></div></div>
+      <div class="tl-msg"><div class="tl-av" style="background:#78350f;color:#fcd34d">JK</div><div class="tl-body"><div class="tl-meta"><strong>Jordan Kim</strong> · Cost Engineer · Haiku 4.5</div><div class="tl-text">With tiering: $810–$1,440/month at 1K DAU. Without: $3,000–$4,500. Tiering is mandatory. Rate-limit free tier strictly.</div></div></div>
+    </div>
+  </div>
+  <div class="right-panel">
+    <div class="panel-title">Live Summary</div>
+    <div class="summary-section"><div class="summary-label">Stack</div><div class="summary-item"><strong>Framework:</strong> Next.js 14</div><div class="summary-item"><strong>DB:</strong> Neon PostgreSQL</div><div class="summary-item"><strong>Stream:</strong> SSE</div><div class="summary-item"><strong>Auth:</strong> Resend magic links</div></div>
+    <div class="summary-section"><div class="summary-label">AI Routing</div><div class="summary-item"><strong>Sonnet 4.6:</strong> 3 agents</div><div class="summary-item"><strong>Haiku 4.5:</strong> 5 agents</div><div class="summary-item"><strong>Avg cost:</strong> ~$0.012/session</div></div>
+    <div class="summary-section"><div class="summary-label">Security</div><div class="summary-item">AES-256-GCM key encryption</div><div class="summary-item">Rate limit by code ID</div><div class="summary-item">Prompt injection sanitization</div></div>
+  </div>
+</div>
+<div class="statusbar"><span>8 agents · $0.012 estimated · Session #1</span><span>${topic} · ARCHON Dashboard</span></div>
+</body>
+</html>`;
+    }
+  };
+}
+</script>
+</body>
+</html>
