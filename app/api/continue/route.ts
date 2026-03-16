@@ -1,10 +1,9 @@
-// app/api/debate/route.ts
+// app/api/continue/route.ts
 
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AGENTS, Agent } from "@/lib/agents";
-import { buildUserPrompt, PreviousMessage } from "@/lib/prompts";
+import { AGENTS } from "@/lib/agents";
 
 // ---------- Provider clients ----------
 const anthropic = new Anthropic({
@@ -20,37 +19,39 @@ const google = new GoogleGenerativeAI(
 );
 
 // ---------- Provider detection ----------
-// Each agent's model string determines which SDK to use.
-// Anthropic: starts with "claude-"
-// OpenAI:    starts with "gpt-"
-// Google:    starts with "gemini-"
 type Provider = "anthropic" | "openai" | "google";
 
 function detectProvider(model: string): Provider {
   if (model.startsWith("claude-")) return "anthropic";
   if (model.startsWith("gpt-"))    return "openai";
   if (model.startsWith("gemini-")) return "google";
-  throw new Error(`Unknown model provider for: ${model}`);
+  throw new Error(`Unknown provider for model: ${model}`);
+}
+
+// ---------- Previous message shape ----------
+interface PreviousMessage {
+  name: string;
+  role: string;
+  text: string;
 }
 
 // ---------- Unified streaming call ----------
-// Calls the correct SDK based on provider and yields tokens one by one.
-// All three SDKs support streaming — we normalize them here so
-// the main loop never needs to know which provider it's talking to.
-async function* streamAgentTokens(
-  agent: Agent,
+// Same pattern as debate/route.ts — normalizes all three SDKs
+// into a single async generator that yields tokens one by one.
+async function* streamTokens(
+  model: string,
+  systemPrompt: string,
   userPrompt: string
 ): AsyncGenerator<string> {
-  const provider = detectProvider(agent.model);
+  const provider = detectProvider(model);
 
   if (provider === "anthropic") {
     const stream = await anthropic.messages.stream({
-      model: agent.model,
-      max_tokens: 300,
-      system: agent.systemPrompt,
+      model,
+      max_tokens: 400,
+      system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
-
     for await (const chunk of stream) {
       if (
         chunk.type === "content_block_delta" &&
@@ -63,18 +64,15 @@ async function* streamAgentTokens(
   }
 
   if (provider === "openai") {
-    // OpenAI uses the chat completions streaming API.
-    // system prompt goes in as a "system" role message.
     const stream = await openai.chat.completions.create({
-      model: agent.model,
-      max_tokens: 300,
+      model,
+      max_tokens: 400,
       stream: true,
       messages: [
-        { role: "system", content: agent.systemPrompt },
+        { role: "system", content: systemPrompt },
         { role: "user",   content: userPrompt },
       ],
     });
-
     for await (const chunk of stream) {
       const token = chunk.choices[0]?.delta?.content;
       if (token) yield token;
@@ -83,15 +81,11 @@ async function* streamAgentTokens(
   }
 
   if (provider === "google") {
-    // Gemini uses generateContentStream.
-    // System instruction is passed separately, not as a chat message.
     const geminiModel = google.getGenerativeModel({
-      model: agent.model,
-      systemInstruction: agent.systemPrompt,
+      model,
+      systemInstruction: systemPrompt,
     });
-
     const result = await geminiModel.generateContentStream(userPrompt);
-
     for await (const chunk of result.stream) {
       const token = chunk.text();
       if (token) yield token;
@@ -100,32 +94,63 @@ async function* streamAgentTokens(
   }
 }
 
+// ---------- Build the follow-up prompt ----------
+// Only 3 agents respond to follow-up questions:
+// Maya (orchestrator), David (architect), Alex (AI engineer).
+// This keeps costs low and responses focused.
+function buildFollowUpPrompt(
+  question: string,
+  topic: string,
+  protoName: string,
+  previousMessages: PreviousMessage[]
+): string {
+  const transcript = previousMessages
+    .map(m => `${m.name} (${m.role}): ${m.text}`)
+    .join("\n\n");
+
+  return `The team previously analyzed "${topic}" and the user selected prototype: "${protoName}".
+
+Here is the relevant conversation so far:
+${transcript}
+
+The user now asks: "${question}"
+
+Answer based on your role, the selected prototype, and the previous discussion.
+Be specific and practical. 3-5 sentences max. No bullet points.`;
+}
+
 // ---------- POST handler ----------
 export async function POST(request: Request) {
-  const { topic, depth } = await request.json();
+  const { topic, question, protoName, previousMessages } = await request.json();
 
-  if (!topic?.trim()) {
-    return new Response("Missing topic", { status: 400 });
+  if (!question?.trim()) {
+    return new Response("Missing question", { status: 400 });
   }
 
-  const agentCount = depth === "quick" ? 4 : 8;
-  const agents = AGENTS.slice(0, agentCount);
   const encoder = new TextEncoder();
-  const previousMessages: PreviousMessage[] = [];
+
+  // Only these 3 agents respond to follow-up questions
+  const CONTINUE_AGENT_IDS = ["maya", "david", "alex"];
+  const agents = AGENTS.filter(a => CONTINUE_AGENT_IDS.includes(a.id));
 
   const stream = new ReadableStream({
     async start(controller) {
 
-      // Helper: encode and send a named SSE event
       function send(event: string, data: object) {
         const line = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
         controller.enqueue(encoder.encode(line));
       }
 
       try {
-        // ---------- Main agent loop ----------
+        const userPrompt = buildFollowUpPrompt(
+          question,
+          topic,
+          protoName,
+          previousMessages ?? []
+        );
+
+        // ---------- Stream each of the 3 agents ----------
         for (const agent of agents) {
-          // Tell the frontend this agent is starting
           send("agent_start", {
             id:       agent.id,
             name:     agent.name,
@@ -133,51 +158,35 @@ export async function POST(request: Request) {
             model:    agent.model,
             initials: agent.initials,
             avatarBg: agent.avatarBg,
-            provider: detectProvider(agent.model), // useful for frontend badges
           });
 
-          const userPrompt = buildUserPrompt(topic, previousMessages);
           let fullText = "";
 
-          // Stream tokens from whichever provider this agent uses
-          for await (const token of streamAgentTokens(agent, userPrompt)) {
+          for await (const token of streamTokens(
+            agent.model,
+            agent.systemPrompt,
+            userPrompt
+          )) {
             fullText += token;
             send("token", { id: agent.id, initials: agent.initials, token });
           }
 
-          // Save the full response so the next agent has context
-          previousMessages.push({
-            name: agent.name,
-            role: agent.role,
-            text: fullText,
-          });
-
           send("agent_done", { id: agent.id });
         }
 
-        // ---------- Final synthesis (always Maya / Opus) ----------
-        // Maya synthesizes everything into a Decision Record.
-        // She always runs on Anthropic regardless of other agents' providers.
+        // ---------- Maya synthesizes the round ----------
         send("synthesis_start", {});
 
-        const synthesisUserPrompt = `The team just finished discussing "${topic}".
-Write a 2-3 sentence Decision Record: the chosen stack, the key tradeoff,
-and the recommended first action. Be specific, no vague advice.`;
-
-        // Build the conversation history for Maya's context
-        const synthesisMessages: Anthropic.MessageParam[] = [
-          ...previousMessages.map((m) => ({
-            role: "user" as const,
-            content: `${m.name} (${m.role}): ${m.text}`,
-          })),
-          { role: "user", content: synthesisUserPrompt },
-        ];
+        const synthesisPrompt = `The user asked: "${question}"
+The team just responded. Write a 2-sentence summary of the consensus
+and the single most important next action for the user.
+Be direct and specific to the "${protoName}" prototype.`;
 
         const synthStream = await anthropic.messages.stream({
-          model:     "claude-opus-4-6",
-          max_tokens: 200,
-          system:    AGENTS[0].systemPrompt, // Maya's system prompt
-          messages:  synthesisMessages,
+          model:      "claude-opus-4-6",
+          max_tokens: 150,
+          system:     AGENTS[0].systemPrompt, // Maya's system prompt
+          messages:   [{ role: "user", content: synthesisPrompt }],
         });
 
         for await (const chunk of synthStream) {
@@ -192,7 +201,6 @@ and the recommended first action. Be specific, no vague advice.`;
         send("done", {});
 
       } catch (err) {
-        // Send the error to the frontend so it can display a message
         send("error", { message: String(err) });
       } finally {
         controller.close();
