@@ -6,9 +6,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AGENTS } from "@/lib/agents";
 
 // ---------- Provider clients ----------
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Anthropic client is created per-request (see POST handler) to support user-supplied keys.
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -41,7 +39,8 @@ interface PreviousMessage {
 async function* streamTokens(
   model: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  anthropic: Anthropic
 ): AsyncGenerator<string> {
   const provider = detectProvider(model);
 
@@ -128,7 +127,9 @@ function langInstruction(lang: string): string {
 
 // ---------- POST handler ----------
 export async function POST(request: Request) {
-  const { topic, question, protoName, previousMessages, lang = 'en', depth = 'full' } = await request.json();
+  const { topic, question, protoName, previousMessages, lang = 'en', depth = 'full', apiKey } = await request.json();
+  if (!apiKey) return new Response("No API key provided. Add your Anthropic key in Settings.", { status: 401 });
+  const anthropic = new Anthropic({ apiKey });
 
   if (!question?.trim()) {
     return new Response("Missing question", { status: 400 });
@@ -175,7 +176,8 @@ export async function POST(request: Request) {
           for await (const token of streamTokens(
             agent.model,
             agent.systemPrompt + langInstruction(lang),
-            userPrompt
+            userPrompt,
+            anthropic
           )) {
             fullText += token;
             send("token", { id: agent.id, initials: agent.initials, token });

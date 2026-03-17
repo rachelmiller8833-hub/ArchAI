@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Step, Depth, Lang, Message } from '@/types';
+import SettingsModal from '@/app/components/SettingsModal';
 
 interface StepDebateProps {
   // Session
@@ -28,6 +29,8 @@ interface StepDebateProps {
   // Settings
   showSettings: boolean;
   setShowSettings: (v: boolean) => void;
+  settings: { anthropicKey: string; openaiKey: string; geminiKey: string; maxSessions: number; expiryDate: string; };
+  setSettings: (v: any) => void;
   // New session
   onNewSession: () => void;
   // DEMO: pre-loaded messages for demo replay (skip API)
@@ -70,6 +73,7 @@ export default function StepDebate({
   isStreaming, setIsStreaming,
   showToast,
   showSettings, setShowSettings,
+  settings, setSettings,
   onNewSession,
   demoReplayMessages, // DEMO
 }: StepDebateProps) {
@@ -91,6 +95,7 @@ export default function StepDebate({
 
   // Invalid topic state
   const [invalidTopic, setInvalidTopic] = useState(false);
+  const [keyError, setKeyError] = useState<'missing' | 'invalid' | null>(null);
 
   // Bottom anchor for auto-scroll
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -161,6 +166,7 @@ export default function StepDebate({
   async function startDebate() {
     stoppedRef.current = false;
     setIsStreaming(true);
+    setKeyError(null);
     setMessages([]);
     setCompletedCount(0);
     setDebateComplete(false);
@@ -169,10 +175,13 @@ export default function StepDebate({
       const response = await fetch('/api/debate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, depth, lang }),
+        body: JSON.stringify({ topic, depth, lang, apiKey: settings.anthropicKey || undefined }),
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 401) { setKeyError('missing'); setIsStreaming(false); return; }
+        throw new Error(await response.text());
+      }
       if (!response.body) throw new Error('No response body');
 
       const reader = response.body.getReader();
@@ -195,7 +204,8 @@ export default function StepDebate({
           if (!eventMatch || !dataMatch) continue;
 
           const event = eventMatch[1];
-          const data  = JSON.parse(dataMatch[1]);
+          let data: any;
+          try { data = JSON.parse(dataMatch[1]); } catch { continue; }
 
           handleSSEEvent(event, data);
         }
@@ -316,10 +326,20 @@ export default function StepDebate({
       }
 
       case 'error': {
-        showToast(`Agent error: ${data.message}`);
+        const msg: string = data.message || '';
+        if (msg.includes('authentication_error') || msg.includes('invalid x-api-key')) {
+          setKeyError('invalid');
+        } else if (msg.includes('401')) {
+          setKeyError('missing');
+        } else {
+          showToast(`Agent error: ${msg}`);
+        }
         setIsStreaming(false);
         break;
       }
+
+      default:
+        break;
     }
   }
 
@@ -360,6 +380,7 @@ export default function StepDebate({
 
   return (
     <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col">
+      <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} onSave={keyError ? onNewSession : undefined} settings={settings} setSettings={setSettings} darkMode={dm} lang={lang} showToast={showToast} />
 
       {/* ---- Top Nav ---- */}
       <nav className={`sticky top-0 z-40 border-b ${dm ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-200'}`}>
@@ -494,6 +515,35 @@ export default function StepDebate({
                     style={{ animation: `bounce 1s infinite ${delay}ms` }}
                   />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* API key error — missing or invalid */}
+          {keyError && (
+            <div className={`mx-auto max-w-sm text-center pt-4 pb-2 space-y-3`}>
+              <div className={`rounded-xl border p-5 ${dm ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'}`}>
+                <p className="text-2xl mb-2">🔑</p>
+                <p className={`text-sm font-semibold mb-1 ${dm ? 'text-amber-300' : 'text-amber-800'}`}>
+                  {keyError === 'invalid'
+                    ? (isHe ? 'מפתח API שגוי' : 'Invalid API Key')
+                    : (isHe ? 'נדרש מפתח API' : 'API Key Required')}
+                </p>
+                <p className={`text-xs mb-4 ${dm ? 'text-amber-400/80' : 'text-amber-700'}`}>
+                  {keyError === 'invalid'
+                    ? (isHe
+                        ? 'המפתח שהזנת אינו תקין. בדוק אותו והזן מפתח נכון בהגדרות'
+                        : 'The key you entered is incorrect. Please check and update it in Settings.')
+                    : (isHe
+                        ? 'הוסף את מפתח ה-Anthropic שלך בהגדרות כדי להתחיל'
+                        : 'Add your Anthropic API key in Settings to start the debate.')}
+                </p>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors"
+                >
+                  {isHe ? '⚙️ פתח הגדרות' : '⚙️ Open Settings'}
+                </button>
               </div>
             </div>
           )}

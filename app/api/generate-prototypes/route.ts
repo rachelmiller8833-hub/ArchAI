@@ -5,9 +5,7 @@ import { ConceptData } from "@/types";
 
 export const maxDuration = 60;
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-async function generateHTML(concept: ConceptData, topic: string, langNote = ''): Promise<string> {
+async function generateHTML(anthropic: Anthropic, concept: ConceptData, topic: string, langNote = ''): Promise<string> {
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 6000,
@@ -44,11 +42,14 @@ CRITICAL RULES — read carefully:
 }
 
 export async function POST(request: Request) {
-  const { topic, concepts, lang = 'en' } = await request.json() as {
+  const { topic, concepts, lang = 'en', apiKey } = await request.json() as {
     topic: string;
     concepts: Record<string, ConceptData>;
     lang?: string;
+    apiKey?: string;
   };
+  if (!apiKey) return new Response("No API key provided. Add your Anthropic key in Settings.", { status: 401 });
+  const anthropic = new Anthropic({ apiKey });
 
   if (!topic || !concepts?.A || !concepts?.B) {
     return new Response("Missing topic or concepts", { status: 400 });
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 
   try {
     const ids = (['A', 'B', 'C'] as const).filter(id => concepts[id]);
-    const htmlResults = await Promise.all(ids.map(id => generateHTML(concepts[id], topic, langNote)));
+    const htmlResults = await Promise.all(ids.map(id => generateHTML(anthropic, concepts[id], topic, langNote)));
     const result = Object.fromEntries(ids.map((id, i) => [id, htmlResults[i]]));
 
     return Response.json(result);

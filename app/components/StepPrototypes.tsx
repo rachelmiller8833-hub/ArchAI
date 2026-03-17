@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Step, Depth, Lang, ProtoId, Message, ConceptData } from '@/types/index';
+import SettingsModal from '@/app/components/SettingsModal';
 
 interface StepPrototypesProps {
   topic: string;
@@ -17,6 +18,8 @@ interface StepPrototypesProps {
   showToast: (msg: string) => void;
   showSettings: boolean;
   setShowSettings: (v: boolean) => void;
+  settings: { anthropicKey: string; openaiKey: string; geminiKey: string; maxSessions: number; expiryDate: string; };
+  setSettings: (v: any) => void;
   generatedConcepts: Record<string, ConceptData>;
   setGeneratedConcepts: (v: Record<string, ConceptData>) => void;
   generatedPrototypes: Record<string, string>;
@@ -31,7 +34,8 @@ export default function StepPrototypes({
   topic, depth, lang, darkMode,
   navigateTo, goBack, history,
   selectedProto, setSelectedProto,
-  showToast, setShowSettings,
+  showToast, showSettings, setShowSettings,
+  settings, setSettings,
   generatedConcepts, setGeneratedConcepts,
   generatedPrototypes, setGeneratedPrototypes,
   messages,
@@ -86,6 +90,7 @@ export default function StepPrototypes({
           topic,
           lang,
           count: conceptCount,
+          apiKey: settings.anthropicKey || undefined,
           messages: messages.filter(m => !m.isConclusion),
         }),
       });
@@ -105,7 +110,7 @@ export default function StepPrototypes({
       const response = await fetch('/api/generate-prototypes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, lang, concepts: generatedConcepts }),
+        body: JSON.stringify({ topic, lang, concepts: generatedConcepts, apiKey: settings.anthropicKey || undefined }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
@@ -281,6 +286,7 @@ export default function StepPrototypes({
   if (phase === 'extracting') {
     return (
       <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col">
+        <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} settings={settings} setSettings={setSettings} darkMode={dm} lang={lang} showToast={showToast} />
         <Nav />
         <Spinner label={isHe ? 'מחלץ רעיונות מהדיון...' : 'Extracting product concepts from the debate...'} />
       </div>
@@ -292,6 +298,7 @@ export default function StepPrototypes({
     const conceptList = (['A', 'B', 'C'] as const).map(id => generatedConcepts[id]).filter(Boolean);
     return (
       <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col">
+        <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} settings={settings} setSettings={setSettings} darkMode={dm} lang={lang} showToast={showToast} />
         <Nav />
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10">
           <div className="text-center mb-10">
@@ -427,6 +434,7 @@ export default function StepPrototypes({
   if (phase === 'generating') {
     return (
       <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col">
+        <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} settings={settings} setSettings={setSettings} darkMode={dm} lang={lang} showToast={showToast} />
         <Nav />
         <Spinner label={isHe ? `בונה ${conceptCount} אתרים...` : `Building ${conceptCount} websites...`} />
       </div>
@@ -436,6 +444,7 @@ export default function StepPrototypes({
   // ---- Phase: done (show prototype cards) ----
   return (
     <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen flex flex-col">
+      <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} settings={settings} setSettings={setSettings} darkMode={dm} lang={lang} showToast={showToast} />
       <Nav />
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10">
         <div className="text-center mb-10">

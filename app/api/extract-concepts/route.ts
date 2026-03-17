@@ -3,8 +3,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ConceptData } from "@/types";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 interface DebateMessage {
   name: string;
   role: string;
@@ -12,7 +10,9 @@ interface DebateMessage {
 }
 
 export async function POST(request: Request) {
-  const { topic, messages, lang = 'en', count = 3 } = await request.json();
+  const { topic, messages, lang = 'en', count = 3, apiKey } = await request.json();
+  if (!apiKey) return new Response("No API key provided. Add your Anthropic key in Settings.", { status: 401 });
+  const anthropic = new Anthropic({ apiKey });
 
   if (!topic || !messages?.length) {
     return new Response("Missing topic or messages", { status: 400 });

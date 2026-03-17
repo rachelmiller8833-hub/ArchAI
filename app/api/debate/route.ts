@@ -7,9 +7,8 @@ import { AGENTS, Agent } from "@/lib/agents";
 import { buildUserPrompt, PreviousMessage } from "@/lib/prompts";
 
 // ---------- Provider clients ----------
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Anthropic client is created per-request (see POST handler) to support user-supplied keys.
+// OpenAI and Gemini are still module-level as they don't yet support user-supplied keys via settings.
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -39,7 +38,8 @@ function detectProvider(model: string): Provider {
 // the main loop never needs to know which provider it's talking to.
 async function* streamAgentTokens(
   agent: Agent,
-  userPrompt: string
+  userPrompt: string,
+  anthropic: Anthropic
 ): AsyncGenerator<string> {
   const provider = detectProvider(agent.model);
 
@@ -109,7 +109,9 @@ function langInstruction(lang: string): string {
 
 // ---------- POST handler ----------
 export async function POST(request: Request) {
-  const { topic, depth, lang = 'en' } = await request.json();
+  const { topic, depth, lang = 'en', apiKey } = await request.json();
+  if (!apiKey) return new Response("No API key provided. Add your Anthropic key in Settings.", { status: 401 });
+  const anthropic = new Anthropic({ apiKey });
 
   if (!topic?.trim()) {
     return new Response("Missing topic", { status: 400 });
@@ -179,7 +181,7 @@ If NO (gibberish, too short/vague, offensive, or clearly not a software idea): r
           };
 
           // Stream tokens from whichever provider this agent uses
-          for await (const token of streamAgentTokens(agentWithLang, userPrompt)) {
+          for await (const token of streamAgentTokens(agentWithLang, userPrompt, anthropic)) {
             fullText += token;
             send("token", { id: agent.id, initials: agent.initials, token });
           }

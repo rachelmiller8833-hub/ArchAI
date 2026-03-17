@@ -43,13 +43,21 @@ export default function Home() {
 
   // ---- Settings ----
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState({
-    anthropicKey: '',
-    openaiKey: '',
-    geminiKey: '',
-    maxSessions: 50,
-    expiryDate: '',
+  const [settings, setSettings] = useState(() => {
+    if (typeof window === 'undefined') return { anthropicKey: '', openaiKey: '', geminiKey: '', maxSessions: 50, expiryDate: '' };
+    try {
+      const saved = localStorage.getItem('archai_settings');
+      return saved ? JSON.parse(saved) : { anthropicKey: '', openaiKey: '', geminiKey: '', maxSessions: 50, expiryDate: '' };
+    } catch {
+      return { anthropicKey: '', openaiKey: '', geminiKey: '', maxSessions: 50, expiryDate: '' };
+    }
   });
+
+  // Persist settings to localStorage whenever they change
+  const setSettingsAndPersist = useCallback((v: any) => {
+    setSettings(v);
+    try { localStorage.setItem('archai_settings', JSON.stringify(v)); } catch {}
+  }, []);
 
   // ---- Toast notifications ----
   const [toastMsg, setToastMsg] = useState('');
@@ -132,7 +140,7 @@ export default function Home() {
     lang, setLang,
     darkMode, setDarkMode,
     showSettings, setShowSettings,
-    settings, setSettings,
+    settings, setSettings: setSettingsAndPersist,
     toastMsg, toastVisible, showToast,
     history, navigateTo, goBack,
     selectedProto, setSelectedProto,

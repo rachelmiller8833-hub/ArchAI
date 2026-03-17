@@ -5,8 +5,6 @@ import { ConceptData } from "@/types";
 
 export const maxDuration = 60;
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 interface RefinementMessage {
   name: string;
   role: string;
@@ -14,12 +12,15 @@ interface RefinementMessage {
 }
 
 export async function POST(request: Request) {
-  const { topic, lang = 'en', concept, refinementMessages } = await request.json() as {
+  const { topic, lang = 'en', concept, refinementMessages, apiKey } = await request.json() as {
     topic: string;
     lang?: string;
     concept: ConceptData;
     refinementMessages: RefinementMessage[];
+    apiKey?: string;
   };
+  if (!apiKey) return new Response("No API key provided. Add your Anthropic key in Settings.", { status: 401 });
+  const anthropic = new Anthropic({ apiKey });
 
   if (!topic || !concept) {
     return new Response("Missing topic or concept", { status: 400 });

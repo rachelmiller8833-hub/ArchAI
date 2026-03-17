@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { Step, Depth, Lang } from '@/types';
+import SettingsModal from '@/app/components/SettingsModal';
 
 interface StepInputProps {
   topic: string;
@@ -51,7 +52,6 @@ export default function StepInput({
   onDemoSkip, // TO_BE_REMOVED
 }: StepInputProps) {
 
-  const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const isHe = lang === 'he';
 
   // Start the debate — reset state and navigate
@@ -63,11 +63,6 @@ export default function StepInput({
   // Fill the topic input with a template
   function handleTemplate(t: string) {
     setTopic(t);
-  }
-
-  function saveSettings() {
-    setShowSettings(false);
-    showToast(isHe ? 'ההגדרות נשמרו' : 'Settings saved');
   }
 
   const dm = darkMode;
@@ -82,131 +77,15 @@ export default function StepInput({
   return (
     <div dir={isHe ? 'rtl' : 'ltr'}>
 
-      {/* ---- Settings Modal ---- */}
-      {showSettings && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setShowSettings(false)}
-        >
-          <div
-            className={`w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden border ${card}`}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${dm ? 'border-slate-700' : 'border-slate-200'}`}>
-              <div className="flex items-center gap-2">
-                <span className="text-lg">⚙️</span>
-                <h2 className="font-bold text-base">API Settings</h2>
-              </div>
-              <button
-                onClick={() => setShowSettings(false)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg ${dm ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
-              >✕</button>
-            </div>
-
-            {/* Modal body */}
-            <div className="px-6 py-4 space-y-5 max-h-[70vh] overflow-y-auto">
-
-              {/* API Keys */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3">API Keys</h3>
-                <div className="space-y-3">
-
-                  {/* Anthropic */}
-                  <div>
-                    <label className={`text-xs font-medium mb-1 block ${subtle}`}>
-                      Anthropic API Key
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type={showAnthropicKey ? 'text' : 'password'}
-                        value={settings.anthropicKey}
-                        onChange={e => setSettings({ ...settings, anthropicKey: e.target.value })}
-                        placeholder="sk-ant-..."
-                        className={`flex-1 px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${input}`}
-                      />
-                      <button
-                        onClick={() => setShowAnthropicKey(!showAnthropicKey)}
-                        className={`px-3 py-2 rounded-lg border text-xs ${dm ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'}`}
-                      >
-                        {showAnthropicKey ? 'Hide' : 'Show'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* OpenAI */}
-                  <div>
-                    <label className={`text-xs font-medium mb-1 block ${subtle}`}>
-                      OpenAI API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={settings.openaiKey}
-                      onChange={e => setSettings({ ...settings, openaiKey: e.target.value })}
-                      placeholder="sk-..."
-                      className={`w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${input}`}
-                    />
-                  </div>
-
-                  {/* Gemini */}
-                  <div>
-                    <label className={`text-xs font-medium mb-1 block ${subtle}`}>
-                      Gemini API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={settings.geminiKey}
-                      onChange={e => setSettings({ ...settings, geminiKey: e.target.value })}
-                      placeholder="AIza..."
-                      className={`w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${input}`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <hr className={dm ? 'border-slate-700' : 'border-slate-200'} />
-
-              {/* Usage limits */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Usage Limits</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={`text-xs font-medium mb-1 block ${subtle}`}>Max Sessions</label>
-                    <input
-                      type="number"
-                      value={settings.maxSessions}
-                      onChange={e => setSettings({ ...settings, maxSessions: Number(e.target.value) })}
-                      className={`w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${input}`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`text-xs font-medium mb-1 block ${subtle}`}>Expiry Date</label>
-                    <input
-                      type="date"
-                      value={settings.expiryDate}
-                      onChange={e => setSettings({ ...settings, expiryDate: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${input}`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal footer */}
-            <div className={`flex items-center justify-end gap-2 px-6 py-4 border-t ${dm ? 'border-slate-700' : 'border-slate-200'}`}>
-              <button
-                onClick={() => setShowSettings(false)}
-                className={`px-4 py-2 rounded-lg border text-sm ${dm ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'}`}
-              >Cancel</button>
-              <button
-                onClick={saveSettings}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold"
-              >Save Settings</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SettingsModal
+        show={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={settings}
+        setSettings={setSettings}
+        darkMode={dm}
+        lang={lang}
+        showToast={showToast}
+      />
 
       {/* ---- Top Nav ---- */}
       <nav className={`sticky top-0 z-40 border-b ${dm ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-200'}`}>
