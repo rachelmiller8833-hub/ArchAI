@@ -7,9 +7,9 @@ import StepInput      from '@/app/components/StepInput';
 import StepDebate     from '@/app/components/StepDebate';
 import StepPrototypes from '@/app/components/StepPrototypes';
 import StepContinue   from '@/app/components/StepContinue';
-import { getDemoData } from '@/lib/demoData'; // TO_BE_REMOVED
+import { getDemoData } from '@/lib/demoData'; 
 
-// TO_BE_REMOVED: pre-fill topic for testing. Delete this line before shipping.
+// pre-fill topic for testing. Delete this line before shipping.
 const DEV_PREFILL_TOPIC = 'Logo builder SaaS — AI-powered logo creation tool';
 
 export default function Home() {
@@ -18,7 +18,6 @@ export default function Home() {
   const [history, setHistory] = useState<Step[]>([]);
 
   // ---- Session state ----
-  // TO_BE_REMOVED: const [topic, setTopic] = useState('');
   const [topic, setTopic] = useState(DEV_PREFILL_TOPIC);
   const [depth, setDepth] = useState<Depth>('full');
   const [lang, setLang] = useState<Lang>('en');
@@ -37,8 +36,7 @@ export default function Home() {
   // ---- Continue (round 2+) state ----
   const [continueMessages, setContinueMessages] = useState<Message[]>([]);
 
-  // TO_BE_REMOVED: messages to replay in demo mode (empty = use real API)
-  const [demoReplayMessages, setDemoReplayMessages] = useState<Message[]>([]); // TO_BE_REMOVED
+  const [demoReplayMessages, setDemoReplayMessages] = useState<Message[]>([]); 
 
   // ---- Prototype selection ----
   const [selectedProto, setSelectedProto] = useState<ProtoId>(null);
@@ -84,7 +82,7 @@ export default function Home() {
     setGeneratedPrototypes({});
     setSelectedProto(null);
     setContinueMessages([]);
-    setDemoReplayMessages([]); // TO_BE_REMOVED
+    setDemoReplayMessages([]); 
     setHistory([]);
     setStep('input');
   }, []);
@@ -99,7 +97,7 @@ export default function Home() {
     setGeneratedPrototypes({});
     setSelectedProto(null);
     setContinueMessages([]);
-    setDemoReplayMessages([]); // TO_BE_REMOVED
+    setDemoReplayMessages([]); // DEMO
     setHistory(prev => [...prev, step]);
     setStep('debate');
   }, [step]);
@@ -110,22 +108,22 @@ export default function Home() {
     setTimeout(() => setToastVisible(false), 2500);
   }, []);
 
-  // TO_BE_REMOVED: Demo mode — pre-fills topic, navigates to debate, and replays messages without API
-  const onDemoSkip = useCallback(() => { // TO_BE_REMOVED
-    const demo = getDemoData(lang); // TO_BE_REMOVED — picks Hebrew or English data based on current lang
-    setTopic(demo.topic); // TO_BE_REMOVED
-    setMessages([]); // TO_BE_REMOVED
-    setCompletedCount(0); // TO_BE_REMOVED
-    setDebateComplete(false); // TO_BE_REMOVED
-    setIsStreaming(false); // TO_BE_REMOVED
-    setGeneratedConcepts(demo.concepts); // TO_BE_REMOVED — pre-load so prototypes page skips API
-    setGeneratedPrototypes(demo.prototypes); // TO_BE_REMOVED — pre-load so prototypes page skips API
-    setSelectedProto(null); // TO_BE_REMOVED
-    setContinueMessages([]); // TO_BE_REMOVED
-    setDemoReplayMessages(demo.messages); // TO_BE_REMOVED — triggers animated replay in StepDebate
-    setHistory(['input']); // TO_BE_REMOVED
-    setStep('debate'); // TO_BE_REMOVED — go to debate page for animated replay
-  }, [lang]); // TO_BE_REMOVED
+  // DEMO: Demo mode — pre-fills topic, navigates to debate, and replays messages without API
+  const onDemoSkip = useCallback(() => { // DEMO
+    const demo = getDemoData(lang); // DEMO — picks Hebrew or English data based on current lang
+    setTopic(demo.topic); // DEMO
+    setMessages([]); // DEMO
+    setCompletedCount(0); // DEMO
+    setDebateComplete(false); // DEMO
+    setIsStreaming(false); // DEMO
+    setGeneratedConcepts(demo.concepts); // DEMO — pre-load so prototypes page skips API
+    setGeneratedPrototypes(demo.prototypes); // DEMO — pre-load so prototypes page skips API
+    setSelectedProto(null); // DEMO
+    setContinueMessages([]); // DEMO
+    setDemoReplayMessages(demo.messages); // DEMO — triggers animated replay in StepDebate
+    setHistory(['input']); // DEMO
+    setStep('debate'); // DEMO — go to debate page for animated replay
+  }, [lang]); // DEMO
 
   // ---- Shared props passed down to every step ----
   const sharedProps = {
@@ -148,7 +146,7 @@ export default function Home() {
     completedCount, setCompletedCount,
     debateComplete, setDebateComplete,
     isStreaming, setIsStreaming,
-    demoReplayMessages, // TO_BE_REMOVED
+    demoReplayMessages, // DEMO
   };
 
   const continueProps = {
@@ -170,7 +168,7 @@ export default function Home() {
 
       {/* Step routing */}
       {step === 'input' && (
-        <StepInput {...sharedProps} onStartDebate={onStartDebate} onDemoSkip={onDemoSkip} /* TO_BE_REMOVED: onDemoSkip */ />
+        <StepInput {...sharedProps} onStartDebate={onStartDebate} onDemoSkip={onDemoSkip} /* DEMO: onDemoSkip */ />
       )}
       {step === 'debate' && (
         <StepDebate {...sharedProps} {...debateProps} />

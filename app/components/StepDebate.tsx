@@ -30,8 +30,8 @@ interface StepDebateProps {
   setShowSettings: (v: boolean) => void;
   // New session
   onNewSession: () => void;
-  // TO_BE_REMOVED: pre-loaded messages for demo replay (skip API)
-  demoReplayMessages?: Message[]; // TO_BE_REMOVED
+  // DEMO: pre-loaded messages for demo replay (skip API)
+  demoReplayMessages?: Message[]; // DEMO
 }
 
 // Avatar colors — one per agent initials
@@ -71,7 +71,7 @@ export default function StepDebate({
   showToast,
   showSettings, setShowSettings,
   onNewSession,
-  demoReplayMessages, // TO_BE_REMOVED
+  demoReplayMessages, // DEMO
 }: StepDebateProps) {
 
   const isHe = lang === 'he';
@@ -109,54 +109,54 @@ export default function StepDebate({
   useEffect(() => {
     if (!debateStartedRef.current && messages.length === 0 && !debateComplete) {
       debateStartedRef.current = true;
-      if (demoReplayMessages && demoReplayMessages.length > 0) { // TO_BE_REMOVED
-        replayDemoMessages(); // TO_BE_REMOVED
-      } else { // TO_BE_REMOVED
+      if (demoReplayMessages && demoReplayMessages.length > 0) { // DEMO
+        replayDemoMessages(); // DEMO
+      } else { // DEMO
         startDebate();
-      } // TO_BE_REMOVED
+      } // DEMO
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // TO_BE_REMOVED: Animate pre-loaded demo messages one by one without calling the API
-  async function replayDemoMessages() { // TO_BE_REMOVED
-    if (!demoReplayMessages?.length) return; // TO_BE_REMOVED
-    stoppedRef.current = false; // TO_BE_REMOVED
-    setIsStreaming(true); // TO_BE_REMOVED
-    setMessages([]); // TO_BE_REMOVED
-    setCompletedCount(0); // TO_BE_REMOVED
-    setDebateComplete(false); // TO_BE_REMOVED
+  // DEMO: Animate pre-loaded demo messages one by one without calling the API
+  async function replayDemoMessages() { // DEMO
+    if (!demoReplayMessages?.length) return; // DEMO
+    stoppedRef.current = false; // DEMO
+    setIsStreaming(true); // DEMO
+    setMessages([]); // DEMO
+    setCompletedCount(0); // DEMO
+    setDebateComplete(false); // DEMO
 
-    for (let i = 0; i < demoReplayMessages.length; i++) { // TO_BE_REMOVED
-      const msg = demoReplayMessages[i]; // TO_BE_REMOVED
-      if (stoppedRef.current) break; // TO_BE_REMOVED
+    for (let i = 0; i < demoReplayMessages.length; i++) { // DEMO
+      const msg = demoReplayMessages[i]; // DEMO
+      if (stoppedRef.current) break; // DEMO
 
-      const isSynthesis = msg.role.toLowerCase().includes('synthesis'); // TO_BE_REMOVED
+      const isSynthesis = msg.role.toLowerCase().includes('synthesis'); // DEMO
 
-      // Show typing indicator for this agent // TO_BE_REMOVED
-      setTypingVisible(true); // TO_BE_REMOVED
-      setTypingInitials(msg.initials); // TO_BE_REMOVED
-      setTypingAvatar(msg.avatarBg); // TO_BE_REMOVED
+      // Show typing indicator for this agent // DEMO
+      setTypingVisible(true); // DEMO
+      setTypingInitials(msg.initials); // DEMO
+      setTypingAvatar(msg.avatarBg); // DEMO
 
-      await new Promise<void>(r => setTimeout(r, isSynthesis ? 1200 : 700)); // TO_BE_REMOVED
-      if (stoppedRef.current) break; // TO_BE_REMOVED
+      await new Promise<void>(r => setTimeout(r, isSynthesis ? 1200 : 700)); // DEMO
+      if (stoppedRef.current) break; // DEMO
 
-      // Reveal the full message instantly // TO_BE_REMOVED
-      setTypingVisible(false); // TO_BE_REMOVED
-      setMessages(prev => [...prev, { ...msg, streaming: false }]); // TO_BE_REMOVED
-      if (!isSynthesis) setCompletedCount(prev => prev + 1); // TO_BE_REMOVED
+      // Reveal the full message instantly // DEMO
+      setTypingVisible(false); // DEMO
+      setMessages(prev => [...prev, { ...msg, streaming: false }]); // DEMO
+      if (!isSynthesis) setCompletedCount(prev => prev + 1); // DEMO
 
-      // Brief pause between messages // TO_BE_REMOVED
-      if (i < demoReplayMessages.length - 1) { // TO_BE_REMOVED
-        await new Promise<void>(r => setTimeout(r, 350)); // TO_BE_REMOVED
-      } // TO_BE_REMOVED
-    } // TO_BE_REMOVED
+      // Brief pause between messages // DEMO
+      if (i < demoReplayMessages.length - 1) { // DEMO
+        await new Promise<void>(r => setTimeout(r, 350)); // DEMO
+      } // DEMO
+    } // DEMO
 
-    if (!stoppedRef.current) { // TO_BE_REMOVED
-      setTypingVisible(false); // TO_BE_REMOVED
-      setDebateComplete(true); // TO_BE_REMOVED
-    } // TO_BE_REMOVED
-    setIsStreaming(false); // TO_BE_REMOVED
-  } // TO_BE_REMOVED
+    if (!stoppedRef.current) { // DEMO
+      setTypingVisible(false); // DEMO
+      setDebateComplete(true); // DEMO
+    } // DEMO
+    setIsStreaming(false); // DEMO
+  } // DEMO
 
   async function startDebate() {
     stoppedRef.current = false;
@@ -521,15 +521,15 @@ export default function StepDebate({
               </p>
               <button
                 onClick={() => {
-                  if (demoReplayMessages && demoReplayMessages.length > 0) { // TO_BE_REMOVED
-                    onNewSession(); // TO_BE_REMOVED — demo: go home instead of hitting the API
-                  } else { // TO_BE_REMOVED
+                  if (demoReplayMessages && demoReplayMessages.length > 0) { // DEMO
+                    onNewSession(); // DEMO — demo: go home instead of hitting the API
+                  } else { // DEMO
                     debateStartedRef.current = false;
                     setMessages([]);
                     setCompletedCount(0);
                     debateStartedRef.current = true;
                     startDebate();
-                  } // TO_BE_REMOVED
+                  } // DEMO
                 }}
                 className={`text-xs px-4 py-2 rounded-lg border transition-colors ${dm ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'}`}
               >

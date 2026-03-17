@@ -1,97 +1,97 @@
 // lib/demoData.ts
-// TO_BE_REMOVED: This entire file is hardcoded demo data for testing without spending API credits.
-// TO_BE_REMOVED: Delete this file before shipping to production.
+// DEMO: This entire file is hardcoded demo data for testing without spending API credits.
+// DEMO: Delete this file before shipping to production.
 
 import { Message, ConceptData } from '@/types';
 
-// TO_BE_REMOVED: Pre-filled topic for the retro games demo
-export const DEMO_TOPIC = 'I want to build a site with old games like Dave, I want to have the option to download the game to .exe file for running it in offline mode.'; // TO_BE_REMOVED
+// DEMO: Pre-filled topic for the retro games demo
+export const DEMO_TOPIC = 'I want to build a site with old games like Dave, I want to have the option to download the game to .exe file for running it in offline mode.'; // DEMO
 
-// TO_BE_REMOVED: Hardcoded concepts extracted from the demo debate
-export const DEMO_CONCEPTS: Record<string, ConceptData> = { // TO_BE_REMOVED
-  A: { // TO_BE_REMOVED
-    id: 'A', // TO_BE_REMOVED
-    title: 'Arcade Vault', // TO_BE_REMOVED
-    description: 'A premium curated library of classic DOS and early Windows games. Users browse by era, genre, or nostalgia factor. Each game page has screenshots, historical context, and one-click browser play or .exe download with a built-in launcher.', // TO_BE_REMOVED
-    ux: 'Netflix-style browsing with a game card grid, hover-to-preview, instant-play overlay, and a My Library section for saved games and cloud progress.', // TO_BE_REMOVED
-    visual: 'Dark gaming aesthetic with neon green accents, large game art thumbnails, retro-inspired typography for game titles but clean modern UI for navigation.', // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  B: { // TO_BE_REMOVED
-    id: 'B', // TO_BE_REMOVED
-    title: 'RetroLauncher', // TO_BE_REMOVED
-    description: 'A desktop-first game manager that mimics modern launchers (Steam/Epic) but for retro titles. The website is primarily a download portal for the Windows client app, which manages game installations, updates, and .exe creation.', // TO_BE_REMOVED
-    ux: 'Sidebar navigation between Library, Store, and Community. Game cards show install status. One-click install creates a proper .exe shortcut on the desktop.', // TO_BE_REMOVED
-    visual: 'Deep navy and purple color scheme inspired by modern gaming platforms. Game covers as large tiles, status badges (Installed, Update Available, New), minimal chrome.', // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  C: { // TO_BE_REMOVED
-    id: 'C', // TO_BE_REMOVED
-    title: 'DOS Nostalgia Hub', // TO_BE_REMOVED
-    description: 'A community-first platform where retro gaming fans share tips, speedruns, and memories. Games are free to play in-browser via DOSBox WASM. The social layer is the main differentiator with forums, achievement badges, and user-created guides.', // TO_BE_REMOVED
-    ux: 'Forum-meets-game-library layout. Each game page has tabbed interface: Play, Forum, Guides, Leaderboard. User profiles display retro achievement badges.', // TO_BE_REMOVED
-    visual: 'CRT-inspired aesthetic with phosphor-green text on dark backgrounds for terminal/forum sections, contrasted with clean cards for game info.', // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-}; // TO_BE_REMOVED
+// DEMO: Hardcoded concepts extracted from the demo debate
+export const DEMO_CONCEPTS: Record<string, ConceptData> = { // DEMO
+  A: { // DEMO
+    id: 'A', // DEMO
+    title: 'Arcade Vault', // DEMO
+    description: 'A premium curated library of classic DOS and early Windows games. Users browse by era, genre, or nostalgia factor. Each game page has screenshots, historical context, and one-click browser play or .exe download with a built-in launcher.', // DEMO
+    ux: 'Netflix-style browsing with a game card grid, hover-to-preview, instant-play overlay, and a My Library section for saved games and cloud progress.', // DEMO
+    visual: 'Dark gaming aesthetic with neon green accents, large game art thumbnails, retro-inspired typography for game titles but clean modern UI for navigation.', // DEMO
+  }, // DEMO
+  B: { // DEMO
+    id: 'B', // DEMO
+    title: 'RetroLauncher', // DEMO
+    description: 'A desktop-first game manager that mimics modern launchers (Steam/Epic) but for retro titles. The website is primarily a download portal for the Windows client app, which manages game installations, updates, and .exe creation.', // DEMO
+    ux: 'Sidebar navigation between Library, Store, and Community. Game cards show install status. One-click install creates a proper .exe shortcut on the desktop.', // DEMO
+    visual: 'Deep navy and purple color scheme inspired by modern gaming platforms. Game covers as large tiles, status badges (Installed, Update Available, New), minimal chrome.', // DEMO
+  }, // DEMO
+  C: { // DEMO
+    id: 'C', // DEMO
+    title: 'DOS Nostalgia Hub', // DEMO
+    description: 'A community-first platform where retro gaming fans share tips, speedruns, and memories. Games are free to play in-browser via DOSBox WASM. The social layer is the main differentiator with forums, achievement badges, and user-created guides.', // DEMO
+    ux: 'Forum-meets-game-library layout. Each game page has tabbed interface: Play, Forum, Guides, Leaderboard. User profiles display retro achievement badges.', // DEMO
+    visual: 'CRT-inspired aesthetic with phosphor-green text on dark backgrounds for terminal/forum sections, contrasted with clean cards for game info.', // DEMO
+  }, // DEMO
+}; // DEMO
 
-// TO_BE_REMOVED: Hardcoded debate messages for the retro games concept
-export const DEMO_MESSAGES: Message[] = [ // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 101, name: 'Maya Levi', role: 'Orchestrator', model: 'Claude Opus 4.6', // TO_BE_REMOVED
-    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // TO_BE_REMOVED
-    text: "Welcome, team. Today we're analyzing a retro gaming platform — a site hosting classic DOS/Windows games like Dave, with .exe download support for offline play. This touches legal/licensing complexity, frontend emulation tech, and serious UX decisions around a nostalgia-driven audience. Let's hear all angles.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 102, name: 'David Park', role: 'Backend Lead', model: 'Claude Sonnet 4.6', // TO_BE_REMOVED
-    initials: 'DP', avatarBg: '#6d28d9', threadColor: '#8b5cf6', // TO_BE_REMOVED
-    text: "For backend, the core challenge is game file storage and delivery. I'd recommend S3-compatible object storage (Cloudflare R2 for zero egress costs) for .exe packages and ROM files. The download service needs rate limiting and user auth to prevent abuse. For browser play, DOSBox compiled to WASM runs client-side — no server CPU needed. Stack: Next.js API routes + Supabase for user data + Cloudflare R2. Redis for session/download quotas.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 103, name: 'Priya Shah', role: 'Frontend Lead', model: 'Claude Sonnet 4.6', // TO_BE_REMOVED
-    initials: 'PS', avatarBg: '#0369a1', threadColor: '#0ea5e9', // TO_BE_REMOVED
-    text: "UX-wise, the game library needs two modes: browser play and download. For browser play, I'd embed js-dos (DOSBox WASM) in an iframe with gamepad support. The .exe download flow should be a proper installer — not just a raw binary. Electron.js wrapper or NSIS installer script that bundles DOSBox with the game pre-configured. For the site itself: React + Next.js App Router, Tailwind, Framer Motion for transitions. Game search should be instant using Algolia or local Fuse.js.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 104, name: 'Alex Chen', role: 'Product Strategy', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'AC', avatarBg: '#065f46', threadColor: '#10b981', // TO_BE_REMOVED
-    text: "Three viable product directions: (1) Curated premium library — 500 licensed games, subscription model, cloud saves — compete on quality and legality; (2) Open community platform — focus on abandonware + freeware, strong forum/social layer, free with donations; (3) Desktop launcher app — Steam for retro games, website is just a landing page for the app download. I recommend direction 1 or 3. Direction 2 has legal risk but fastest to MVP.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 105, name: 'Jordan Kim', role: 'Business & Monetization', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'JK', avatarBg: '#92400e', threadColor: '#f59e0b', // TO_BE_REMOVED
-    text: "Monetization options: (1) Freemium — free browser play, $4.99/month for unlimited downloads and cloud saves; (2) Pay-per-game — $1-3 per .exe download, works for nostalgia buys; (3) Ad-supported — display ads around the game player, not ideal for UX but no friction. Target audience is 30-45 year olds with disposable income and strong nostalgia. Subscription makes most sense. Comparable: GOG.com proves this market exists.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 106, name: 'Sarah Moore', role: 'Security & Compliance', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'SM', avatarBg: '#881337', threadColor: '#f43f5e', // TO_BE_REMOVED
-    text: "Legal is the biggest risk here. Most classic games have copyright holders. 'Abandonware' is not a legal category — it's just unenforced copyright. Options: (1) Only host games with verified freeware/open-source licenses (Quake, Doom with source ports — safe); (2) License from publishers directly (costly but clean); (3) Accept the risk for truly abandoned titles. For .exe downloads, users must agree to ToS that they own the original. DMCA takedown compliance is mandatory. I'd strongly recommend starting only with legally clear titles.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 107, name: 'Marcus Johnson', role: 'Infrastructure & DevOps', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'MJ', avatarBg: '#1e40af', threadColor: '#3b82f6', // TO_BE_REMOVED
-    text: "Infrastructure: Vercel for Next.js (free tier handles decent traffic), Cloudflare R2 for game files (free egress), Supabase free tier for auth+DB to start. CDN is critical — game files are 1-50MB each, must be cached at edge. For the .exe bundler, a GitHub Actions pipeline that takes a game + DOSBox config, runs NSIS, and uploads the installer to R2. This can be automated per-game. Estimated cost at 1000 users: ~$20/month.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 108, name: 'Elena Vasquez', role: 'Data & Analytics', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'EV', avatarBg: '#065f46', threadColor: '#10b981', // TO_BE_REMOVED
-    text: "Data strategy: Track play sessions (game_id, duration, completion_rate), download conversions (browser_play to .exe download), and search queries to discover catalog gaps. Use PostHog (open-source, self-hosted) for analytics — free and privacy-compliant. Key metrics: DAU, average session length, top games by play time vs download count, and churn on the subscription. A/B test the 'Play in Browser vs Download' CTA placement — this is the key conversion point.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 109, name: 'Maya Levi', role: 'Orchestrator — Final Synthesis', model: 'Claude Opus 4.6', // TO_BE_REMOVED
-    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // TO_BE_REMOVED
-    text: "Synthesis: The team has outlined three viable product directions. For a lean MVP, I recommend starting with a curated browser-play library of legally clear games (Freeware, GPL-licensed titles like Quake/Doom), adding .exe download via a DOSBox-bundled NSIS installer. Tech stack: Next.js + Supabase + Cloudflare R2. Monetize via freemium subscription at launch. The community/social layer can be layered on top once you have user traction. Legal risk is manageable if you start with clear-license titles and build DMCA compliance from day one. This is a real market — GOG.com proves it works at scale.", // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-]; // TO_BE_REMOVED
+// DEMO: Hardcoded debate messages for the retro games concept
+export const DEMO_MESSAGES: Message[] = [ // DEMO
+  { // DEMO
+    id: 101, name: 'Maya Levi', role: 'Orchestrator', model: 'Claude Opus 4.6', // DEMO
+    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // DEMO
+    text: "Welcome, team. Today we're analyzing a retro gaming platform — a site hosting classic DOS/Windows games like Dave, with .exe download support for offline play. This touches legal/licensing complexity, frontend emulation tech, and serious UX decisions around a nostalgia-driven audience. Let's hear all angles.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 102, name: 'David Park', role: 'Backend Lead', model: 'Claude Sonnet 4.6', // DEMO
+    initials: 'DP', avatarBg: '#6d28d9', threadColor: '#8b5cf6', // DEMO
+    text: "For backend, the core challenge is game file storage and delivery. I'd recommend S3-compatible object storage (Cloudflare R2 for zero egress costs) for .exe packages and ROM files. The download service needs rate limiting and user auth to prevent abuse. For browser play, DOSBox compiled to WASM runs client-side — no server CPU needed. Stack: Next.js API routes + Supabase for user data + Cloudflare R2. Redis for session/download quotas.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 103, name: 'Priya Shah', role: 'Frontend Lead', model: 'Claude Sonnet 4.6', // DEMO
+    initials: 'PS', avatarBg: '#0369a1', threadColor: '#0ea5e9', // DEMO
+    text: "UX-wise, the game library needs two modes: browser play and download. For browser play, I'd embed js-dos (DOSBox WASM) in an iframe with gamepad support. The .exe download flow should be a proper installer — not just a raw binary. Electron.js wrapper or NSIS installer script that bundles DOSBox with the game pre-configured. For the site itself: React + Next.js App Router, Tailwind, Framer Motion for transitions. Game search should be instant using Algolia or local Fuse.js.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 104, name: 'Alex Chen', role: 'Product Strategy', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'AC', avatarBg: '#065f46', threadColor: '#10b981', // DEMO
+    text: "Three viable product directions: (1) Curated premium library — 500 licensed games, subscription model, cloud saves — compete on quality and legality; (2) Open community platform — focus on abandonware + freeware, strong forum/social layer, free with donations; (3) Desktop launcher app — Steam for retro games, website is just a landing page for the app download. I recommend direction 1 or 3. Direction 2 has legal risk but fastest to MVP.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 105, name: 'Jordan Kim', role: 'Business & Monetization', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'JK', avatarBg: '#92400e', threadColor: '#f59e0b', // DEMO
+    text: "Monetization options: (1) Freemium — free browser play, $4.99/month for unlimited downloads and cloud saves; (2) Pay-per-game — $1-3 per .exe download, works for nostalgia buys; (3) Ad-supported — display ads around the game player, not ideal for UX but no friction. Target audience is 30-45 year olds with disposable income and strong nostalgia. Subscription makes most sense. Comparable: GOG.com proves this market exists.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 106, name: 'Sarah Moore', role: 'Security & Compliance', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'SM', avatarBg: '#881337', threadColor: '#f43f5e', // DEMO
+    text: "Legal is the biggest risk here. Most classic games have copyright holders. 'Abandonware' is not a legal category — it's just unenforced copyright. Options: (1) Only host games with verified freeware/open-source licenses (Quake, Doom with source ports — safe); (2) License from publishers directly (costly but clean); (3) Accept the risk for truly abandoned titles. For .exe downloads, users must agree to ToS that they own the original. DMCA takedown compliance is mandatory. I'd strongly recommend starting only with legally clear titles.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 107, name: 'Marcus Johnson', role: 'Infrastructure & DevOps', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'MJ', avatarBg: '#1e40af', threadColor: '#3b82f6', // DEMO
+    text: "Infrastructure: Vercel for Next.js (free tier handles decent traffic), Cloudflare R2 for game files (free egress), Supabase free tier for auth+DB to start. CDN is critical — game files are 1-50MB each, must be cached at edge. For the .exe bundler, a GitHub Actions pipeline that takes a game + DOSBox config, runs NSIS, and uploads the installer to R2. This can be automated per-game. Estimated cost at 1000 users: ~$20/month.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 108, name: 'Elena Vasquez', role: 'Data & Analytics', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'EV', avatarBg: '#065f46', threadColor: '#10b981', // DEMO
+    text: "Data strategy: Track play sessions (game_id, duration, completion_rate), download conversions (browser_play to .exe download), and search queries to discover catalog gaps. Use PostHog (open-source, self-hosted) for analytics — free and privacy-compliant. Key metrics: DAU, average session length, top games by play time vs download count, and churn on the subscription. A/B test the 'Play in Browser vs Download' CTA placement — this is the key conversion point.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 109, name: 'Maya Levi', role: 'Orchestrator — Final Synthesis', model: 'Claude Opus 4.6', // DEMO
+    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // DEMO
+    text: "Synthesis: The team has outlined three viable product directions. For a lean MVP, I recommend starting with a curated browser-play library of legally clear games (Freeware, GPL-licensed titles like Quake/Doom), adding .exe download via a DOSBox-bundled NSIS installer. Tech stack: Next.js + Supabase + Cloudflare R2. Monetize via freemium subscription at launch. The community/social layer can be layered on top once you have user traction. Legal risk is manageable if you start with clear-license titles and build DMCA compliance from day one. This is a real market — GOG.com proves it works at scale.", // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+]; // DEMO
 
-// TO_BE_REMOVED: Hardcoded HTML prototypes generated for the retro games concept
-export const DEMO_PROTOTYPES: Record<string, string> = { // TO_BE_REMOVED
+// DEMO: Hardcoded HTML prototypes generated for the retro games concept
+export const DEMO_PROTOTYPES: Record<string, string> = { // DEMO
   A: `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Arcade Vault</title>
@@ -384,100 +384,100 @@ export const DEMO_PROTOTYPES: Record<string, string> = { // TO_BE_REMOVED
   <span style="font-family:'VT323',monospace;font-size:16px;color:#00ff0055;">DOS NOSTALGIA HUB &copy; 2024 // <a href="#" style="color:#00ff00;text-decoration:none;">DMCA</a> // <a href="#" style="color:#00ff00;text-decoration:none;">PRIVACY</a> // FREEWARE TITLES ONLY</span>
 </footer>
 </body></html>`,
-}; // TO_BE_REMOVED
+}; // DEMO
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TO_BE_REMOVED: Hebrew demo data
+// DEMO: Hebrew demo data
 // ─────────────────────────────────────────────────────────────────────────────
 
-// TO_BE_REMOVED: Hebrew topic
-export const DEMO_TOPIC_HE = 'אני רוצה לבנות אתר עם משחקים ישנים כמו דייב, אני רוצה שתהיה אפשרות להוריד את המשחק כקובץ .exe להפעלה במצב אופליין.'; // TO_BE_REMOVED
+// DEMO: Hebrew topic
+export const DEMO_TOPIC_HE = 'אני רוצה לבנות אתר עם משחקים ישנים כמו דייב, אני רוצה שתהיה אפשרות להוריד את המשחק כקובץ .exe להפעלה במצב אופליין.'; // DEMO
 
-// TO_BE_REMOVED: Hebrew concepts
-export const DEMO_CONCEPTS_HE: Record<string, ConceptData> = { // TO_BE_REMOVED
-  A: { // TO_BE_REMOVED
-    id: 'A', // TO_BE_REMOVED
-    title: 'מחסן הארקייד', // TO_BE_REMOVED
-    description: 'ספרייה פרמיום מאוצרת של משחקי DOS וחלונות קלאסיים. המשתמשים מדפדפים לפי עידן, ז\'אנר, או גורם נוסטלגיה. בכל עמוד משחק יש צילומי מסך, הקשר היסטורי, ומשחק בדפדפן בלחיצה אחת או הורדת .exe עם לאנצ\'ר מובנה.', // TO_BE_REMOVED
-    ux: 'דפדוף בסגנון נטפליקס עם רשת כרטיסי משחק, תצוגה מקדימה בריחוף, שכבת-על למשחק מיידי, וקטע "הספרייה שלי" לשמירת משחקים ועדכוני ענן.', // TO_BE_REMOVED
-    visual: 'עיצוב גיימינג כהה עם הדגשות ירוק ניאון, תמונות ממוזערות גדולות של משחקים, טיפוגרפיה בהשראת רטרו לכותרי משחקים אך ממשק מודרני נקי לניווט.', // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  B: { // TO_BE_REMOVED
-    id: 'B', // TO_BE_REMOVED
-    title: 'לאנצ\'ר הרטרו', // TO_BE_REMOVED
-    description: 'מנהל משחקים לשולחן עבודה שמחקה לאנצ\'רים מודרניים (Steam/Epic) אך לכותרים רטרו. האתר הוא בעיקר פורטל הורדה לאפליקציית הלקוח של Windows, המנהלת התקנות משחקים, עדכונים ויצירת .exe.', // TO_BE_REMOVED
-    ux: 'ניווט סרגל-צד בין ספרייה, חנות וקהילה. כרטיסי משחק מציגים סטטוס התקנה. התקנה בלחיצה אחת יוצרת קיצור דרך .exe מתאים על שולחן העבודה.', // TO_BE_REMOVED
-    visual: 'ערכת צבעים כחול עמוק וסגול בהשראת פלטפורמות גיימינג מודרניות. עטיפות משחקים כאריחים גדולים, תגי סטטוס (מותקן, עדכון זמין, חדש), ממשק מינימלי.', // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  C: { // TO_BE_REMOVED
-    id: 'C', // TO_BE_REMOVED
-    title: 'מרכז הנוסטלגיה DOS', // TO_BE_REMOVED
-    description: 'פלטפורמה שמשמת קהילה בראש ובראשונה שבה אוהדי משחקים רטרו משתפים טיפים, ריצות מהירות וזיכרונות. המשחקים חינמיים לשחק בדפדפן דרך DOSBox WASM. שכבת הרשת החברתית היא גורם ההבדלה העיקרי עם פורומים, תגי הישגים ומדריכים שנוצרו על ידי משתמשים.', // TO_BE_REMOVED
-    ux: 'פריסת פורום-ספריית-משחקים. לכל עמוד משחק ממשק כרטיסיות: שחק, פורום, מדריכים, לוח תוצאות. פרופילי משתמשים מציגים תגי הישגים רטרו.', // TO_BE_REMOVED
-    visual: 'אסתטיקה בהשראת CRT עם טקסט ירוק-זרחן על רקע כהה לחלקי הטרמינל/פורום, בניגוד לכרטיסים נקיים למידע על משחקים.', // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-}; // TO_BE_REMOVED
+// DEMO: Hebrew concepts
+export const DEMO_CONCEPTS_HE: Record<string, ConceptData> = { // DEMO
+  A: { // DEMO
+    id: 'A', // DEMO
+    title: 'מחסן הארקייד', // DEMO
+    description: 'ספרייה פרמיום מאוצרת של משחקי DOS וחלונות קלאסיים. המשתמשים מדפדפים לפי עידן, ז\'אנר, או גורם נוסטלגיה. בכל עמוד משחק יש צילומי מסך, הקשר היסטורי, ומשחק בדפדפן בלחיצה אחת או הורדת .exe עם לאנצ\'ר מובנה.', // DEMO
+    ux: 'דפדוף בסגנון נטפליקס עם רשת כרטיסי משחק, תצוגה מקדימה בריחוף, שכבת-על למשחק מיידי, וקטע "הספרייה שלי" לשמירת משחקים ועדכוני ענן.', // DEMO
+    visual: 'עיצוב גיימינג כהה עם הדגשות ירוק ניאון, תמונות ממוזערות גדולות של משחקים, טיפוגרפיה בהשראת רטרו לכותרי משחקים אך ממשק מודרני נקי לניווט.', // DEMO
+  }, // DEMO
+  B: { // DEMO
+    id: 'B', // DEMO
+    title: 'לאנצ\'ר הרטרו', // DEMO
+    description: 'מנהל משחקים לשולחן עבודה שמחקה לאנצ\'רים מודרניים (Steam/Epic) אך לכותרים רטרו. האתר הוא בעיקר פורטל הורדה לאפליקציית הלקוח של Windows, המנהלת התקנות משחקים, עדכונים ויצירת .exe.', // DEMO
+    ux: 'ניווט סרגל-צד בין ספרייה, חנות וקהילה. כרטיסי משחק מציגים סטטוס התקנה. התקנה בלחיצה אחת יוצרת קיצור דרך .exe מתאים על שולחן העבודה.', // DEMO
+    visual: 'ערכת צבעים כחול עמוק וסגול בהשראת פלטפורמות גיימינג מודרניות. עטיפות משחקים כאריחים גדולים, תגי סטטוס (מותקן, עדכון זמין, חדש), ממשק מינימלי.', // DEMO
+  }, // DEMO
+  C: { // DEMO
+    id: 'C', // DEMO
+    title: 'מרכז הנוסטלגיה DOS', // DEMO
+    description: 'פלטפורמה שמשמת קהילה בראש ובראשונה שבה אוהדי משחקים רטרו משתפים טיפים, ריצות מהירות וזיכרונות. המשחקים חינמיים לשחק בדפדפן דרך DOSBox WASM. שכבת הרשת החברתית היא גורם ההבדלה העיקרי עם פורומים, תגי הישגים ומדריכים שנוצרו על ידי משתמשים.', // DEMO
+    ux: 'פריסת פורום-ספריית-משחקים. לכל עמוד משחק ממשק כרטיסיות: שחק, פורום, מדריכים, לוח תוצאות. פרופילי משתמשים מציגים תגי הישגים רטרו.', // DEMO
+    visual: 'אסתטיקה בהשראת CRT עם טקסט ירוק-זרחן על רקע כהה לחלקי הטרמינל/פורום, בניגוד לכרטיסים נקיים למידע על משחקים.', // DEMO
+  }, // DEMO
+}; // DEMO
 
-// TO_BE_REMOVED: Hebrew debate messages
-export const DEMO_MESSAGES_HE: Message[] = [ // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 201, name: 'מאיה לוי', role: 'מתאמת', model: 'Claude Opus 4.6', // TO_BE_REMOVED
-    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // TO_BE_REMOVED
-    text: 'ברוכים הבאים, צוות. היום אנו מנתחים פלטפורמת משחקים רטרו — אתר המארח משחקי DOS קלאסיים כמו דייב, עם תמיכה בהורדת .exe למשחק אופליין. הנושא נוגע במורכבות משפטית ורישוי, טכנולוגיית אמולציה בצד לקוח, והחלטות UX קריטיות לקהל מונע נוסטלגיה. בואו נשמע את כל הזוויות.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 202, name: 'דוד פארק', role: 'ארכיטקט מערכות', model: 'Claude Sonnet 4.6', // TO_BE_REMOVED
-    initials: 'DP', avatarBg: '#6d28d9', threadColor: '#8b5cf6', // TO_BE_REMOVED
-    text: 'מבחינת ה-backend, האתגר המרכזי הוא אחסון ומסירת קבצי משחקים. אני ממליץ על אחסון אובייקטים תואם S3 (Cloudflare R2 עם אפס עלויות יציאה) לחבילות .exe ולקבצי ROM. שירות ההורדה זקוק להגבלת קצב ואימות משתמשים למניעת ניצול. למשחק בדפדפן, DOSBox מקומפל ל-WASM רץ בצד לקוח — ללא צורך ב-CPU של שרת. Stack: Next.js API routes + Supabase לנתוני משתמשים + Cloudflare R2. Redis לניהול מכסות הורדה.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 203, name: 'פריה שארמה', role: 'ארכיטקטית Frontend', model: 'Claude Sonnet 4.6', // TO_BE_REMOVED
-    initials: 'PS', avatarBg: '#0369a1', threadColor: '#0ea5e9', // TO_BE_REMOVED
-    text: 'מבחינת UX, ספריית המשחקים צריכה שני מצבים: משחק בדפדפן והורדה. למשחק בדפדפן, הייתי מטמיעה js-dos ב-iframe עם תמיכה בגיימפד. תהליך הורדת ה-.exe צריך להיות מתקין מלא — לא רק קובץ בינארי. סקריפט NSIS המאגד את DOSBox עם המשחק מוגדר מראש. לאתר: React + Next.js App Router, Tailwind, Framer Motion למעברים. חיפוש משחקים מיידי עם Fuse.js.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 204, name: 'אלכס צ\'ן', role: 'מהנדס AI', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'AC', avatarBg: '#065f46', threadColor: '#10b981', // TO_BE_REMOVED
-    text: 'שלושה כיווני מוצר אפשריים: (1) ספרייה פרמיום מאוצרת — 500 משחקים מורשים, מודל מנוי, שמירת ענן — תחרות על איכות וחוקיות; (2) פלטפורמת קהילה פתוחה — התמקדות ב-abandonware ו-freeware, שכבה חברתית/פורום חזקה, חינמי עם תרומות; (3) אפליקציית לאנצ\'ר לשולחן עבודה. אני ממליץ על כיוון 1 או 3. לכיוון 2 יש סיכון משפטי אבל הוא המהיר ביותר ל-MVP.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 205, name: 'ג\'ורדן קים', role: 'מהנדס עלויות', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'JK', avatarBg: '#92400e', threadColor: '#f59e0b', // TO_BE_REMOVED
-    text: 'אפשרויות מונטיזציה: (1) Freemium — משחק חינמי בדפדפן, 4.99 דולר/חודש להורדות בלתי מוגבלות ושמירת ענן; (2) תשלום למשחק — 1-3 דולר להורדת .exe, עובד לרכישות נוסטלגיה; (3) ממומן בפרסומות. קהל היעד הוא בני 30-45 עם הכנסה פנויה ונוסטלגיה חזקה. מנוי הכי הגיוני. השוואה: GOG.com מוכיח שהשוק הזה קיים.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 206, name: 'שרה מולר', role: 'מהנדסת אבטחה', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'SM', avatarBg: '#881337', threadColor: '#f43f5e', // TO_BE_REMOVED
-    text: 'חוקי הוא הסיכון הגדול ביותר. לרוב המשחקים הקלאסיים יש בעלי זכויות יוצרים. "Abandonware" אינה קטגוריה משפטית. אפשרויות: (1) אחסון רק משחקים עם רישיונות freeware/open-source מאומתים (Quake, Doom — בטוח); (2) רישוי מהמפרסמים ישירות; (3) קבלת הסיכון לכותרים שנזנחו. להורדות .exe, המשתמשים חייבים לאשר בתנאי שירות שהם הבעלים של המקור. עמידה ב-DMCA היא חובה.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 207, name: 'מרקוס ג\'ונסון', role: 'מנהל מוצר', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'MJ', avatarBg: '#1e40af', threadColor: '#3b82f6', // TO_BE_REMOVED
-    text: 'תשתית: Vercel ל-Next.js (תוכנית חינמית מטפלת בתנועה סבירה), Cloudflare R2 לקבצי משחקים (יציאה חינמית), Supabase תוכנית חינמית ל-auth ו-DB. CDN קריטי — קבצי משחקים הם 1-50MB כל אחד, חייבים להיות במטמון ב-edge. לבונה .exe, תהליך GitHub Actions שמריץ NSIS ומעלה ל-R2. עלות משוערת ב-1000 משתמשים: כ-20 דולר/חודש.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 208, name: 'אלנה ואסקז', role: 'יועצת סטארטאפ', model: 'Claude Haiku 4.5', // TO_BE_REMOVED
-    initials: 'EV', avatarBg: '#065f46', threadColor: '#10b981', // TO_BE_REMOVED
-    text: 'אסטרטגיית נתונים: מעקב אחר סשנים (game_id, duration, completion_rate), המרות הורדה (משחק בדפדפן → הורדת .exe), ושאילתות חיפוש לגילוי פערים בקטלוג. שימוש ב-PostHog (open-source, self-hosted) — חינמי ותואם פרטיות. מדדים מרכזיים: DAU, אורך סשן ממוצע, משחקים מובילים לפי זמן משחק מול ספירת הורדות, ונטישה במנוי. A/B test על מיקום ה-CTA — זוהי נקודת ההמרה המרכזית.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-  { // TO_BE_REMOVED
-    id: 209, name: 'מאיה לוי', role: 'מתאמת — סינתזה סופית', model: 'Claude Opus 4.6', // TO_BE_REMOVED
-    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // TO_BE_REMOVED
-    text: 'סינתזה: הצוות תיאר שלושה כיווני מוצר אפשריים. ל-MVP רזה, אני ממליצה להתחיל עם ספריית משחקים בדפדפן של כותרים בעלי רישיון ברור (כותרים מורשי Freeware ו-GPL כמו Quake ו-Doom), להוסיף הורדת .exe דרך מתקין NSIS עם DOSBox. Stack טכנולוגי: Next.js + Supabase + Cloudflare R2. מונטיזציה דרך מנוי freemium בהשקה. שכבת הקהילה יכולה להתווסף לאחר שיש לך מספיק משתמשים. הסיכון המשפטי ניתן לניהול אם מתחילים עם כותרים בעלי רישיון ברור ובונים תאימות DMCA מהיום הראשון. זה שוק אמיתי — GOG.com מוכיח שזה עובד.', // TO_BE_REMOVED
-    streaming: false, visible: true, isConclusion: false, // TO_BE_REMOVED
-  }, // TO_BE_REMOVED
-]; // TO_BE_REMOVED
+// DEMO: Hebrew debate messages
+export const DEMO_MESSAGES_HE: Message[] = [ // DEMO
+  { // DEMO
+    id: 201, name: 'מאיה לוי', role: 'מתאמת', model: 'Claude Opus 4.6', // DEMO
+    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // DEMO
+    text: 'ברוכים הבאים, צוות. היום אנו מנתחים פלטפורמת משחקים רטרו — אתר המארח משחקי DOS קלאסיים כמו דייב, עם תמיכה בהורדת .exe למשחק אופליין. הנושא נוגע במורכבות משפטית ורישוי, טכנולוגיית אמולציה בצד לקוח, והחלטות UX קריטיות לקהל מונע נוסטלגיה. בואו נשמע את כל הזוויות.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 202, name: 'דוד פארק', role: 'ארכיטקט מערכות', model: 'Claude Sonnet 4.6', // DEMO
+    initials: 'DP', avatarBg: '#6d28d9', threadColor: '#8b5cf6', // DEMO
+    text: 'מבחינת ה-backend, האתגר המרכזי הוא אחסון ומסירת קבצי משחקים. אני ממליץ על אחסון אובייקטים תואם S3 (Cloudflare R2 עם אפס עלויות יציאה) לחבילות .exe ולקבצי ROM. שירות ההורדה זקוק להגבלת קצב ואימות משתמשים למניעת ניצול. למשחק בדפדפן, DOSBox מקומפל ל-WASM רץ בצד לקוח — ללא צורך ב-CPU של שרת. Stack: Next.js API routes + Supabase לנתוני משתמשים + Cloudflare R2. Redis לניהול מכסות הורדה.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 203, name: 'פריה שארמה', role: 'ארכיטקטית Frontend', model: 'Claude Sonnet 4.6', // DEMO
+    initials: 'PS', avatarBg: '#0369a1', threadColor: '#0ea5e9', // DEMO
+    text: 'מבחינת UX, ספריית המשחקים צריכה שני מצבים: משחק בדפדפן והורדה. למשחק בדפדפן, הייתי מטמיעה js-dos ב-iframe עם תמיכה בגיימפד. תהליך הורדת ה-.exe צריך להיות מתקין מלא — לא רק קובץ בינארי. סקריפט NSIS המאגד את DOSBox עם המשחק מוגדר מראש. לאתר: React + Next.js App Router, Tailwind, Framer Motion למעברים. חיפוש משחקים מיידי עם Fuse.js.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 204, name: 'אלכס צ\'ן', role: 'מהנדס AI', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'AC', avatarBg: '#065f46', threadColor: '#10b981', // DEMO
+    text: 'שלושה כיווני מוצר אפשריים: (1) ספרייה פרמיום מאוצרת — 500 משחקים מורשים, מודל מנוי, שמירת ענן — תחרות על איכות וחוקיות; (2) פלטפורמת קהילה פתוחה — התמקדות ב-abandonware ו-freeware, שכבה חברתית/פורום חזקה, חינמי עם תרומות; (3) אפליקציית לאנצ\'ר לשולחן עבודה. אני ממליץ על כיוון 1 או 3. לכיוון 2 יש סיכון משפטי אבל הוא המהיר ביותר ל-MVP.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 205, name: 'ג\'ורדן קים', role: 'מהנדס עלויות', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'JK', avatarBg: '#92400e', threadColor: '#f59e0b', // DEMO
+    text: 'אפשרויות מונטיזציה: (1) Freemium — משחק חינמי בדפדפן, 4.99 דולר/חודש להורדות בלתי מוגבלות ושמירת ענן; (2) תשלום למשחק — 1-3 דולר להורדת .exe, עובד לרכישות נוסטלגיה; (3) ממומן בפרסומות. קהל היעד הוא בני 30-45 עם הכנסה פנויה ונוסטלגיה חזקה. מנוי הכי הגיוני. השוואה: GOG.com מוכיח שהשוק הזה קיים.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 206, name: 'שרה מולר', role: 'מהנדסת אבטחה', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'SM', avatarBg: '#881337', threadColor: '#f43f5e', // DEMO
+    text: 'חוקי הוא הסיכון הגדול ביותר. לרוב המשחקים הקלאסיים יש בעלי זכויות יוצרים. "Abandonware" אינה קטגוריה משפטית. אפשרויות: (1) אחסון רק משחקים עם רישיונות freeware/open-source מאומתים (Quake, Doom — בטוח); (2) רישוי מהמפרסמים ישירות; (3) קבלת הסיכון לכותרים שנזנחו. להורדות .exe, המשתמשים חייבים לאשר בתנאי שירות שהם הבעלים של המקור. עמידה ב-DMCA היא חובה.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 207, name: 'מרקוס ג\'ונסון', role: 'מנהל מוצר', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'MJ', avatarBg: '#1e40af', threadColor: '#3b82f6', // DEMO
+    text: 'תשתית: Vercel ל-Next.js (תוכנית חינמית מטפלת בתנועה סבירה), Cloudflare R2 לקבצי משחקים (יציאה חינמית), Supabase תוכנית חינמית ל-auth ו-DB. CDN קריטי — קבצי משחקים הם 1-50MB כל אחד, חייבים להיות במטמון ב-edge. לבונה .exe, תהליך GitHub Actions שמריץ NSIS ומעלה ל-R2. עלות משוערת ב-1000 משתמשים: כ-20 דולר/חודש.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 208, name: 'אלנה ואסקז', role: 'יועצת סטארטאפ', model: 'Claude Haiku 4.5', // DEMO
+    initials: 'EV', avatarBg: '#065f46', threadColor: '#10b981', // DEMO
+    text: 'אסטרטגיית נתונים: מעקב אחר סשנים (game_id, duration, completion_rate), המרות הורדה (משחק בדפדפן → הורדת .exe), ושאילתות חיפוש לגילוי פערים בקטלוג. שימוש ב-PostHog (open-source, self-hosted) — חינמי ותואם פרטיות. מדדים מרכזיים: DAU, אורך סשן ממוצע, משחקים מובילים לפי זמן משחק מול ספירת הורדות, ונטישה במנוי. A/B test על מיקום ה-CTA — זוהי נקודת ההמרה המרכזית.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+  { // DEMO
+    id: 209, name: 'מאיה לוי', role: 'מתאמת — סינתזה סופית', model: 'Claude Opus 4.6', // DEMO
+    initials: 'ML', avatarBg: '#4338ca', threadColor: '#6366f1', // DEMO
+    text: 'סינתזה: הצוות תיאר שלושה כיווני מוצר אפשריים. ל-MVP רזה, אני ממליצה להתחיל עם ספריית משחקים בדפדפן של כותרים בעלי רישיון ברור (כותרים מורשי Freeware ו-GPL כמו Quake ו-Doom), להוסיף הורדת .exe דרך מתקין NSIS עם DOSBox. Stack טכנולוגי: Next.js + Supabase + Cloudflare R2. מונטיזציה דרך מנוי freemium בהשקה. שכבת הקהילה יכולה להתווסף לאחר שיש לך מספיק משתמשים. הסיכון המשפטי ניתן לניהול אם מתחילים עם כותרים בעלי רישיון ברור ובונים תאימות DMCA מהיום הראשון. זה שוק אמיתי — GOG.com מוכיח שזה עובד.', // DEMO
+    streaming: false, visible: true, isConclusion: false, // DEMO
+  }, // DEMO
+]; // DEMO
 
-// TO_BE_REMOVED: Hebrew HTML prototypes
-export const DEMO_PROTOTYPES_HE: Record<string, string> = { // TO_BE_REMOVED
+// DEMO: Hebrew HTML prototypes
+export const DEMO_PROTOTYPES_HE: Record<string, string> = { // DEMO
   A: `<!DOCTYPE html>
 <html lang="he">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>מחסן הארקייד</title>
@@ -770,22 +770,22 @@ export const DEMO_PROTOTYPES_HE: Record<string, string> = { // TO_BE_REMOVED
   <span style="font-family:'VT323',monospace;font-size:16px;color:#00ff0055;">מרכז הנוסטלגיה DOS &copy; 2024 // <a href="#" style="color:#00ff00;text-decoration:none;">DMCA</a> // <a href="#" style="color:#00ff00;text-decoration:none;">פרטיות</a> // כותרי FREEWARE בלבד</span>
 </footer>
 </body></html>`,
-}; // TO_BE_REMOVED
+}; // DEMO
 
-// TO_BE_REMOVED: Helper that returns the right demo data set based on language
-export function getDemoData(lang: string) { // TO_BE_REMOVED
-  if (lang === 'he') { // TO_BE_REMOVED
-    return { // TO_BE_REMOVED
-      topic:      DEMO_TOPIC_HE, // TO_BE_REMOVED
-      messages:   DEMO_MESSAGES_HE, // TO_BE_REMOVED
-      concepts:   DEMO_CONCEPTS_HE, // TO_BE_REMOVED
-      prototypes: DEMO_PROTOTYPES_HE, // TO_BE_REMOVED
-    }; // TO_BE_REMOVED
-  } // TO_BE_REMOVED
-  return { // TO_BE_REMOVED
-    topic:      DEMO_TOPIC, // TO_BE_REMOVED
-    messages:   DEMO_MESSAGES, // TO_BE_REMOVED
-    concepts:   DEMO_CONCEPTS, // TO_BE_REMOVED
-    prototypes: DEMO_PROTOTYPES, // TO_BE_REMOVED
-  }; // TO_BE_REMOVED
-} // TO_BE_REMOVED
+// DEMO: Helper that returns the right demo data set based on language
+export function getDemoData(lang: string) { // DEMO
+  if (lang === 'he') { // DEMO
+    return { // DEMO
+      topic:      DEMO_TOPIC_HE, // DEMO
+      messages:   DEMO_MESSAGES_HE, // DEMO
+      concepts:   DEMO_CONCEPTS_HE, // DEMO
+      prototypes: DEMO_PROTOTYPES_HE, // DEMO
+    }; // DEMO
+  } // DEMO
+  return { // DEMO
+    topic:      DEMO_TOPIC, // DEMO
+    messages:   DEMO_MESSAGES, // DEMO
+    concepts:   DEMO_CONCEPTS, // DEMO
+    prototypes: DEMO_PROTOTYPES, // DEMO
+  }; // DEMO
+} // DEMO
