@@ -174,7 +174,9 @@ export default function StepContinue({
           lang,
           depth,
           protoName,
-          apiKey: settings.anthropicKey || undefined,
+          apiKey:     settings.anthropicKey || undefined,
+          openaiKey:  settings.openaiKey    || undefined,
+          geminiKey:  settings.geminiKey    || undefined,
           // Send the last 6 messages as context to keep the request lean
           previousMessages: [...messages, ...continueMessages]
             .filter(m => !m.isConclusion)

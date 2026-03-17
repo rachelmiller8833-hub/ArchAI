@@ -6,18 +6,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AGENTS, Agent } from "@/lib/agents";
 import { buildUserPrompt, PreviousMessage } from "@/lib/prompts";
 
-// ---------- Provider clients ----------
-// Anthropic client is created per-request (see POST handler) to support user-supplied keys.
-// OpenAI and Gemini are still module-level as they don't yet support user-supplied keys via settings.
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const google = new GoogleGenerativeAI(
-  process.env.GEMINI_API_KEY ?? ""
-);
-
 // ---------- Provider detection ----------
 // Each agent's model string determines which SDK to use.
 // Anthropic: starts with "claude-"
@@ -39,7 +27,9 @@ function detectProvider(model: string): Provider {
 async function* streamAgentTokens(
   agent: Agent,
   userPrompt: string,
-  anthropic: Anthropic
+  anthropic: Anthropic,
+  openaiKey?: string,
+  geminiKey?: string,
 ): AsyncGenerator<string> {
   const provider = detectProvider(agent.model);
 
@@ -63,8 +53,8 @@ async function* streamAgentTokens(
   }
 
   if (provider === "openai") {
-    // OpenAI uses the chat completions streaming API.
-    // system prompt goes in as a "system" role message.
+    if (!openaiKey) throw new Error("OpenAI API key not provided. Add it in Settings.");
+    const openai = new OpenAI({ apiKey: openaiKey });
     const stream = await openai.chat.completions.create({
       model: agent.model,
       max_tokens: 600,
@@ -83,8 +73,8 @@ async function* streamAgentTokens(
   }
 
   if (provider === "google") {
-    // Gemini uses generateContentStream.
-    // System instruction is passed separately, not as a chat message.
+    if (!geminiKey) throw new Error("Gemini API key not provided. Add it in Settings.");
+    const google = new GoogleGenerativeAI(geminiKey);
     const geminiModel = google.getGenerativeModel({
       model: agent.model,
       systemInstruction: agent.systemPrompt,
@@ -109,7 +99,7 @@ function langInstruction(lang: string): string {
 
 // ---------- POST handler ----------
 export async function POST(request: Request) {
-  const { topic, depth, lang = 'en', apiKey } = await request.json();
+  const { topic, depth, lang = 'en', apiKey, openaiKey, geminiKey } = await request.json();
   if (!apiKey) return new Response("No API key provided. Add your Anthropic key in Settings.", { status: 401 });
   const anthropic = new Anthropic({ apiKey });
 
@@ -181,7 +171,7 @@ If NO (gibberish, too short/vague, offensive, or clearly not a software idea): r
           };
 
           // Stream tokens from whichever provider this agent uses
-          for await (const token of streamAgentTokens(agentWithLang, userPrompt, anthropic)) {
+          for await (const token of streamAgentTokens(agentWithLang, userPrompt, anthropic, openaiKey, geminiKey)) {
             fullText += token;
             send("token", { id: agent.id, initials: agent.initials, token });
           }

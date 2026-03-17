@@ -5,17 +5,6 @@ import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AGENTS } from "@/lib/agents";
 
-// ---------- Provider clients ----------
-// Anthropic client is created per-request (see POST handler) to support user-supplied keys.
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const google = new GoogleGenerativeAI(
-  process.env.GEMINI_API_KEY ?? ""
-);
-
 // ---------- Provider detection ----------
 type Provider = "anthropic" | "openai" | "google";
 
@@ -40,7 +29,9 @@ async function* streamTokens(
   model: string,
   systemPrompt: string,
   userPrompt: string,
-  anthropic: Anthropic
+  anthropic: Anthropic,
+  openaiKey?: string,
+  geminiKey?: string,
 ): AsyncGenerator<string> {
   const provider = detectProvider(model);
 
@@ -63,6 +54,8 @@ async function* streamTokens(
   }
 
   if (provider === "openai") {
+    if (!openaiKey) throw new Error("OpenAI API key not provided. Add it in Settings.");
+    const openai = new OpenAI({ apiKey: openaiKey });
     const stream = await openai.chat.completions.create({
       model,
       max_tokens: 400,
@@ -80,6 +73,8 @@ async function* streamTokens(
   }
 
   if (provider === "google") {
+    if (!geminiKey) throw new Error("Gemini API key not provided. Add it in Settings.");
+    const google = new GoogleGenerativeAI(geminiKey);
     const geminiModel = google.getGenerativeModel({
       model,
       systemInstruction: systemPrompt,
@@ -127,7 +122,7 @@ function langInstruction(lang: string): string {
 
 // ---------- POST handler ----------
 export async function POST(request: Request) {
-  const { topic, question, protoName, previousMessages, lang = 'en', depth = 'full', apiKey } = await request.json();
+  const { topic, question, protoName, previousMessages, lang = 'en', depth = 'full', apiKey, openaiKey, geminiKey } = await request.json();
   if (!apiKey) return new Response("No API key provided. Add your Anthropic key in Settings.", { status: 401 });
   const anthropic = new Anthropic({ apiKey });
 
@@ -177,7 +172,9 @@ export async function POST(request: Request) {
             agent.model,
             agent.systemPrompt + langInstruction(lang),
             userPrompt,
-            anthropic
+            anthropic,
+            openaiKey,
+            geminiKey,
           )) {
             fullText += token;
             send("token", { id: agent.id, initials: agent.initials, token });

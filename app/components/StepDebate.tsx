@@ -175,7 +175,12 @@ export default function StepDebate({
       const response = await fetch('/api/debate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, depth, lang, apiKey: settings.anthropicKey || undefined }),
+        body: JSON.stringify({
+          topic, depth, lang,
+          apiKey:     settings.anthropicKey || undefined,
+          openaiKey:  settings.openaiKey    || undefined,
+          geminiKey:  settings.geminiKey    || undefined,
+        }),
       });
 
       if (!response.ok) {
