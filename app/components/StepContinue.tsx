@@ -2,10 +2,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Step, Lang, ProtoId, Message } from '@/types';
+import { Step, Depth, Lang, ProtoId, Message, ConceptData } from '@/types';
 
 interface StepContinueProps {
   topic: string;
+  depth: Depth;
   lang: Lang;
   darkMode: boolean;
   navigateTo: (target: Step) => void;
@@ -14,11 +15,13 @@ interface StepContinueProps {
   selectedProto: ProtoId;
   showToast: (msg: string) => void;
   setShowSettings: (v: boolean) => void;
+  generatedConcepts: Record<string, ConceptData>;
   // Original debate messages (read-only, shown as context)
   messages: Message[];
   // Continue-round messages (separate array)
   continueMessages: Message[];
   setContinueMessages: (v: Message[] | ((prev: Message[]) => Message[])) => void;
+  onNewSession: () => void;
 }
 
 // Avatar and thread colors — same as StepDebate
@@ -44,12 +47,14 @@ let msgIdCounter = 1000;
 function newMsgId() { return ++msgIdCounter; }
 
 export default function StepContinue({
-  topic, lang, darkMode,
+  topic, depth, lang, darkMode,
   navigateTo, goBack, history,
   selectedProto, showToast,
   setShowSettings,
+  generatedConcepts,
   messages,
   continueMessages, setContinueMessages,
+  onNewSession,
 }: StepContinueProps) {
 
   const isHe = lang === 'he';
@@ -59,6 +64,12 @@ export default function StepContinue({
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [round, setRound] = useState(0);
+  const [lastQuestion, setLastQuestion] = useState('');
+  const [wasStopped, setWasStopped] = useState(false);
+  const roundStartIdxRef = useRef(0);
+
+  const [refinedHtml, setRefinedHtml] = useState('');
+  const [isGeneratingHtml, setIsGeneratingHtml] = useState(false);
 
   // Stop flag — ref so it works inside async loops
   const stoppedRef = useRef(false);
@@ -76,11 +87,71 @@ export default function StepContinue({
 
   const protoName = selectedProto ? PROTO_NAMES[selectedProto] : 'your selected prototype';
 
+  async function generateRefinedHtml() {
+    if (!selectedProto || !generatedConcepts[selectedProto]) return;
+    setIsGeneratingHtml(true);
+    setRefinedHtml('');
+    try {
+      const response = await fetch('/api/generate-refined', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          lang,
+          concept: generatedConcepts[selectedProto],
+          refinementMessages: continueMessages
+            .filter(m => !m.isConclusion && m.text.trim())
+            .map(m => ({ name: m.name, role: m.role, text: m.text })),
+        }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      setRefinedHtml(data.html);
+    } catch (err) {
+      showToast(`Generation failed: ${String(err)}`);
+    } finally {
+      setIsGeneratingHtml(false);
+    }
+  }
+
+  function handlePreviewRefined() {
+    if (!refinedHtml) return;
+    const blob = new Blob([refinedHtml], { type: 'text/html' });
+    window.open(URL.createObjectURL(blob), '_blank');
+  }
+
+  function handleDownloadRefined() {
+    if (!refinedHtml) return;
+    const blob = new Blob([refinedHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `archai-refined-${selectedProto}-${topic.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Refined HTML downloaded!');
+  }
+
+  async function resumeLastQuestion() {
+    // Drop the partial messages from the stopped round, then re-run
+    setContinueMessages(prev => prev.slice(0, roundStartIdxRef.current));
+    setWasStopped(false);
+    await runQuestion(lastQuestion);
+  }
+
   async function handleContinue() {
     if (!input.trim() || isRunning) return;
-
     const question = input.trim();
     setInput('');
+    setWasStopped(false);
+    await runQuestion(question);
+  }
+
+  async function runQuestion(question: string) {
+    setLastQuestion(question);
+    roundStartIdxRef.current = continueMessages.length;
     setIsRunning(true);
     stoppedRef.current = false;
     setRound(prev => prev + 1);
@@ -92,6 +163,8 @@ export default function StepContinue({
         body: JSON.stringify({
           topic,
           question,
+          lang,
+          depth,
           protoName,
           // Send the last 6 messages as context to keep the request lean
           previousMessages: [...messages, ...continueMessages]
@@ -110,12 +183,12 @@ export default function StepContinue({
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done || stoppedRef.current) break;
+        if (stoppedRef.current) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        if (value) buffer += decoder.decode(value, { stream: !done });
 
         const blocks = buffer.split('\n\n');
-        buffer = blocks.pop() || '';
+        buffer = done ? '' : (blocks.pop() || '');
 
         for (const block of blocks) {
           const eventMatch = block.match(/^event: (\w+)/);
@@ -127,12 +200,15 @@ export default function StepContinue({
 
           handleSSEEvent(event, data);
         }
+
+        if (done) break;
       }
 
     } catch (err) {
       showToast(`Error: ${String(err)}`);
     } finally {
       setIsRunning(false);
+      if (stoppedRef.current) setWasStopped(true);
     }
   }
 
@@ -158,7 +234,7 @@ export default function StepContinue({
 
       case 'token': {
         setContinueMessages(prev => prev.map(m =>
-          m.streaming && m.initials === data.id.slice(0, 2).toUpperCase()
+          m.streaming && m.initials === data.initials
             ? { ...m, text: m.text + data.token }
             : m
         ));
@@ -302,12 +378,12 @@ export default function StepContinue({
                 className={`text-xs px-2.5 py-1.5 rounded-md border ${dm ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'}`}
               >← Back</button>
             )}
-            <div className="flex items-center gap-2">
+            <button onClick={onNewSession} className="flex items-center gap-2 cursor-pointer">
               <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
                 <span className="text-white text-xs font-bold font-mono">A</span>
               </div>
               <span className="font-bold text-sm">ArchAI</span>
-            </div>
+            </button>
           </div>
 
           {/* Center: progress pills */}
@@ -335,7 +411,7 @@ export default function StepContinue({
               >⏹ Stop</button>
             )}
             <button
-              onClick={() => navigateTo('input')}
+              onClick={onNewSession}
               className={`text-xs px-3 py-1.5 rounded-md border ${dm ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'}`}
             >+ New Session</button>
             <button
@@ -389,9 +465,75 @@ export default function StepContinue({
 
           {continueMessages.map(msg => renderMessage(msg))}
 
+          {wasStopped && lastQuestion && (
+            <div className={`flex items-center gap-3 py-3 px-4 rounded-xl border ${dm ? 'border-slate-700 bg-slate-800/50' : 'border-slate-200 bg-slate-50'}`}>
+              <span className={`text-xs flex-1 truncate ${subtle}`}>
+                {isHe ? 'הופסק באמצע:' : 'Stopped mid-way:'} <span className={`font-medium ${dm ? 'text-slate-300' : 'text-slate-700'}`}>"{lastQuestion}"</span>
+              </span>
+              <button
+                onClick={resumeLastQuestion}
+                className="flex-shrink-0 text-xs px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-colors"
+              >
+                {isHe ? '▶ המשך מכאן' : '▶ Resume'}
+              </button>
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </main>
+
+      {/* ---- Generate refined HTML panel ---- */}
+      {continueMessages.length > 0 && !isRunning && (
+        <div className={`border-t px-4 py-3 ${dm ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-100'}`}>
+          <div className="max-w-3xl mx-auto">
+            {refinedHtml ? (
+              <div className={`flex items-center gap-3 p-3 rounded-xl border ${dm ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-emerald-200 bg-emerald-50'}`}>
+                <span className="text-emerald-500 text-sm font-semibold flex-1">
+                  {isHe ? '✓ HTML חדש מוכן' : '✓ Refined HTML ready'}
+                </span>
+                <button
+                  onClick={handlePreviewRefined}
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${dm ? 'border-slate-600 hover:bg-slate-800 text-slate-300' : 'border-slate-300 hover:bg-slate-100 text-slate-600'}`}
+                >
+                  {isHe ? 'פתח תצוגה' : 'Preview'}
+                </button>
+                <button
+                  onClick={handleDownloadRefined}
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${dm ? 'border-slate-600 hover:bg-slate-800 text-slate-300' : 'border-slate-300 hover:bg-slate-100 text-slate-600'}`}
+                >
+                  ⬇ HTML
+                </button>
+                <button
+                  onClick={() => { setRefinedHtml(''); }}
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${dm ? 'border-slate-600 hover:bg-slate-800 text-slate-300' : 'border-slate-300 hover:bg-slate-100 text-slate-600'}`}
+                >
+                  {isHe ? 'צור מחדש' : 'Regenerate'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={generateRefinedHtml}
+                disabled={isGeneratingHtml}
+                className={`w-full py-2.5 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                  isGeneratingHtml
+                    ? (dm ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-400 cursor-wait' : 'border-indigo-200 bg-indigo-50 text-indigo-400 cursor-wait')
+                    : 'bg-indigo-600 border-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20'
+                }`}
+              >
+                {isGeneratingHtml ? (
+                  <>
+                    <span className="w-3 h-3 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                    {isHe ? 'בונה HTML מעודכן...' : 'Building refined HTML...'}
+                  </>
+                ) : (
+                  isHe ? '⚡ צור HTML מעודכן על בסיס הדיון' : '⚡ Generate Refined HTML from this discussion'
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ---- Input bar — sticky at bottom ---- */}
       <div className={`sticky bottom-0 border-t ${dm ? 'bg-slate-900 border-slate-700/50' : 'bg-white border-slate-200'}`}>

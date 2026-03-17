@@ -119,9 +119,16 @@ Answer based on your role, the selected prototype, and the previous discussion.
 Be specific and practical. 3-5 sentences max. No bullet points.`;
 }
 
+// ---------- Language instruction ----------
+function langInstruction(lang: string): string {
+  return lang === 'he'
+    ? '\nIMPORTANT: You must respond entirely in Hebrew (עברית). Every word of your response must be in Hebrew — no English allowed.'
+    : '';
+}
+
 // ---------- POST handler ----------
 export async function POST(request: Request) {
-  const { topic, question, protoName, previousMessages } = await request.json();
+  const { topic, question, protoName, previousMessages, lang = 'en', depth = 'full' } = await request.json();
 
   if (!question?.trim()) {
     return new Response("Missing question", { status: 400 });
@@ -130,8 +137,11 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
 
   // Only these 3 agents respond to follow-up questions
+  const HAIKU = "claude-haiku-4-5-20251001";
   const CONTINUE_AGENT_IDS = ["maya", "david", "alex"];
-  const agents = AGENTS.filter(a => CONTINUE_AGENT_IDS.includes(a.id));
+  const agents = AGENTS
+    .filter(a => CONTINUE_AGENT_IDS.includes(a.id))
+    .map(a => depth === "mini" ? { ...a, model: HAIKU } : a);
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -164,7 +174,7 @@ export async function POST(request: Request) {
 
           for await (const token of streamTokens(
             agent.model,
-            agent.systemPrompt,
+            agent.systemPrompt + langInstruction(lang),
             userPrompt
           )) {
             fullText += token;
@@ -183,9 +193,9 @@ and the single most important next action for the user.
 Be direct and specific to the "${protoName}" prototype.`;
 
         const synthStream = await anthropic.messages.stream({
-          model:      "claude-opus-4-6",
+          model:      depth === "mini" ? "claude-haiku-4-5-20251001" : "claude-opus-4-6",
           max_tokens: 150,
-          system:     AGENTS[0].systemPrompt, // Maya's system prompt
+          system:     AGENTS[0].systemPrompt + langInstruction(lang),
           messages:   [{ role: "user", content: synthesisPrompt }],
         });
 

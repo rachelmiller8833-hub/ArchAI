@@ -26,6 +26,9 @@ interface StepInputProps {
   navigateTo: (target: Step) => void;
   showToast: (msg: string) => void;
   history: Step[];
+  onNewSession: () => void;
+  onStartDebate: () => void;
+  onDemoSkip?: () => void; // TO_BE_REMOVED
 }
 
 // Template ideas shown as quick-fill buttons
@@ -43,15 +46,18 @@ export default function StepInput({
   settings, setSettings,
   navigateTo,
   showToast,
+  onNewSession,
+  onStartDebate,
+  onDemoSkip, // TO_BE_REMOVED
 }: StepInputProps) {
 
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const isHe = lang === 'he';
 
-  // Start the debate — validate then navigate
+  // Start the debate — reset state and navigate
   function handleStart() {
     if (!topic.trim()) return;
-    navigateTo('debate');
+    onStartDebate();
   }
 
   // Fill the topic input with a template
@@ -207,7 +213,7 @@ export default function StepInput({
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <button onClick={onNewSession} className="flex items-center gap-2 cursor-pointer">
             <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
               <span className="text-white text-xs font-bold font-mono">A</span>
             </div>
@@ -215,7 +221,7 @@ export default function StepInput({
             <span className={`hidden sm:block text-xs ml-1 ${subtle}`}>
               {isHe ? 'סיעור מוחות ארכיטקטורה עם AI' : 'AI Architecture Brainstorming'}
             </span>
-          </div>
+          </button>
 
           {/* Nav actions */}
           <div className="flex items-center gap-2">
@@ -288,43 +294,89 @@ export default function StepInput({
         </div>
 
         {/* Topic textarea */}
-        <textarea
-          value={topic}
-          onChange={e => setTopic(e.target.value)}
-          placeholder={isHe ? 'תאר את רעיון התוכנה שלך בפירוט...' : 'Describe your software idea in detail...'}
-          rows={5}
-          className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none mb-6 ${input}`}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleStart();
-          }}
-        />
+        {(() => {
+          const maxChars = isHe ? 150 : 300;
+          const remaining = maxChars - topic.length;
+          const pct = topic.length / maxChars;
+          const counterColor = pct >= 1
+            ? 'text-red-500'
+            : pct >= 0.85
+              ? 'text-amber-500'
+              : subtle;
+          return (
+            <>
+              <textarea
+                value={topic}
+                onChange={e => { if (e.target.value.length <= maxChars) setTopic(e.target.value); }}
+                placeholder={isHe ? 'תאר את רעיון התוכנה שלך בפירוט...' : 'Describe your software idea in detail...'}
+                rows={5}
+                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none ${input}`}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleStart();
+                }}
+              />
+              <div className={`flex justify-between text-xs mt-1 mb-6 ${counterColor}`}>
+                <span className={subtle}>
+                  {isHe ? '⌘↵ להתחלה' : '⌘↵ to start'}
+                </span>
+                <span>
+                  {isHe
+                    ? `${remaining} תווים נותרו מתוך ${maxChars}`
+                    : `${remaining} / ${maxChars} characters remaining`}
+                </span>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Depth selector */}
-        <div className="mb-8">
-          <p className={`text-xs font-medium mb-2 ${subtle}`}>
-            {isHe ? 'עומק הדיון' : 'Discussion depth'}
-          </p>
-          <div className="flex gap-3">
-            {(['quick', 'full'] as Depth[]).map(d => (
-              <button
-                key={d}
-                onClick={() => setDepth(d)}
-                className={`flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                  depth === d
-                    ? 'bg-indigo-600 border-indigo-600 text-white'
-                    : dm
-                      ? 'border-slate-700 text-slate-400 hover:bg-slate-800'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                {d === 'quick'
-                  ? (isHe ? 'מהיר (4 סוכנים)' : 'Quick (4 agents)')
-                  : (isHe ? 'מלא (8 סוכנים)' : 'Full (8 agents)')
-                }
-              </button>
-            ))}
-          </div>
-        </div>
+        {(() => {
+          const DEPTH_META: Record<Depth, { label: string; labelHe: string; tokens: string; cost: string; }> = {
+            mini:  { label: 'Mini',  labelHe: 'מיני',  tokens: '~14K tokens', cost: '~$0.15' },
+            quick: { label: 'Quick', labelHe: 'מהיר', tokens: '~25K tokens', cost: '~$0.30' },
+            full:  { label: 'Full',  labelHe: 'מלא',  tokens: '~45K tokens', cost: '~$0.40' },
+          };
+          const DEPTH_SUB: Record<Depth, { sub: string; subHe: string; }> = {
+            mini:  { sub: 'Haiku only · 2 designs', subHe: 'Haiku בלבד · 2 עיצובים' },
+            quick: { sub: '4 agents · 3 designs',   subHe: '4 סוכנים · 3 עיצובים'  },
+            full:  { sub: '8 agents · 3 designs',   subHe: '8 סוכנים · 3 עיצובים'  },
+          };
+          return (
+            <div className="mb-8">
+              <p className={`text-xs font-medium mb-2 ${subtle}`}>
+                {isHe ? 'עומק הדיון' : 'Discussion depth'}
+              </p>
+              <div className="flex gap-2">
+                {(['mini', 'quick', 'full'] as Depth[]).map(d => {
+                  const active = depth === d;
+                  const meta = DEPTH_META[d];
+                  const sub = DEPTH_SUB[d];
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setDepth(d)}
+                      className={`flex-1 py-2.5 px-2 rounded-xl border transition-all flex flex-col items-center gap-0.5 ${
+                        active
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : dm
+                            ? 'border-slate-700 text-slate-400 hover:bg-slate-800'
+                            : 'border-slate-200 text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-xs leading-tight">
+                        <span className="font-semibold">{isHe ? meta.labelHe : meta.label}</span>
+                        <span className={`font-normal ${active ? 'text-indigo-200' : subtle}`}> · {isHe ? sub.subHe : sub.sub}</span>
+                      </span>
+                      <span className={`text-[10px] font-mono ${active ? 'text-indigo-200' : dm ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {meta.cost} · {meta.tokens}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Start button */}
         <button
@@ -334,6 +386,22 @@ export default function StepInput({
         >
           {isHe ? 'התחל דיון ←' : 'Start Discussion →'}
         </button>
+
+        {/* TO_BE_REMOVED: Demo button — replays full retro games debate then loads pre-built prototypes */}
+        {onDemoSkip && ( // TO_BE_REMOVED
+          <div className={`mt-4 pt-4 border-t text-center ${dm ? 'border-slate-800' : 'border-slate-100'}`}> {/* TO_BE_REMOVED */}
+            <p className={`text-xs mb-2 ${subtle}`}> {/* TO_BE_REMOVED */}
+              No API key? Watch a full live demo: {/* TO_BE_REMOVED */}
+            </p> {/* TO_BE_REMOVED */}
+            <button // TO_BE_REMOVED
+              onClick={onDemoSkip} // TO_BE_REMOVED
+              className={`inline-flex items-center gap-2 text-sm px-5 py-2.5 rounded-xl border font-medium transition-colors ${dm ? 'border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400' : 'border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-600'}`} // TO_BE_REMOVED
+            > {/* TO_BE_REMOVED */}
+              ⚡ Watch Demo — Retro Games Site {/* TO_BE_REMOVED */}
+            </button> {/* TO_BE_REMOVED */}
+            <p className={`text-xs mt-2 ${subtle}`}>Replays the full 8-agent debate, then shows 3 ready-made prototypes</p> {/* TO_BE_REMOVED */}
+          </div> // TO_BE_REMOVED
+        )} {/* TO_BE_REMOVED */}
 
         {/* Powered by */}
         <p className={`text-center text-xs mt-6 ${subtle}`}>

@@ -28,6 +28,10 @@ interface StepDebateProps {
   // Settings
   showSettings: boolean;
   setShowSettings: (v: boolean) => void;
+  // New session
+  onNewSession: () => void;
+  // TO_BE_REMOVED: pre-loaded messages for demo replay (skip API)
+  demoReplayMessages?: Message[]; // TO_BE_REMOVED
 }
 
 // Avatar colors — one per agent initials
@@ -66,6 +70,8 @@ export default function StepDebate({
   isStreaming, setIsStreaming,
   showToast,
   showSettings, setShowSettings,
+  onNewSession,
+  demoReplayMessages, // TO_BE_REMOVED
 }: StepDebateProps) {
 
   const isHe = lang === 'he';
@@ -75,10 +81,16 @@ export default function StepDebate({
   // Controls whether the stop button actually cancels the stream
   const stoppedRef = useRef(false);
 
+  // Guards against React StrictMode double-invoking the effect
+  const debateStartedRef = useRef(false);
+
   // Typing indicator state
   const [typingVisible, setTypingVisible] = useState(false);
   const [typingInitials, setTypingInitials] = useState('ML');
   const [typingAvatar, setTypingAvatar] = useState('#4338ca');
+
+  // Invalid topic state
+  const [invalidTopic, setInvalidTopic] = useState(false);
 
   // Bottom anchor for auto-scroll
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -95,10 +107,56 @@ export default function StepDebate({
   // Start streaming as soon as this component mounts,
   // but only if the debate hasn't already run (messages is empty)
   useEffect(() => {
-    if (messages.length === 0 && !debateComplete) {
-      startDebate();
+    if (!debateStartedRef.current && messages.length === 0 && !debateComplete) {
+      debateStartedRef.current = true;
+      if (demoReplayMessages && demoReplayMessages.length > 0) { // TO_BE_REMOVED
+        replayDemoMessages(); // TO_BE_REMOVED
+      } else { // TO_BE_REMOVED
+        startDebate();
+      } // TO_BE_REMOVED
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // TO_BE_REMOVED: Animate pre-loaded demo messages one by one without calling the API
+  async function replayDemoMessages() { // TO_BE_REMOVED
+    if (!demoReplayMessages?.length) return; // TO_BE_REMOVED
+    stoppedRef.current = false; // TO_BE_REMOVED
+    setIsStreaming(true); // TO_BE_REMOVED
+    setMessages([]); // TO_BE_REMOVED
+    setCompletedCount(0); // TO_BE_REMOVED
+    setDebateComplete(false); // TO_BE_REMOVED
+
+    for (let i = 0; i < demoReplayMessages.length; i++) { // TO_BE_REMOVED
+      const msg = demoReplayMessages[i]; // TO_BE_REMOVED
+      if (stoppedRef.current) break; // TO_BE_REMOVED
+
+      const isSynthesis = msg.role.toLowerCase().includes('synthesis'); // TO_BE_REMOVED
+
+      // Show typing indicator for this agent // TO_BE_REMOVED
+      setTypingVisible(true); // TO_BE_REMOVED
+      setTypingInitials(msg.initials); // TO_BE_REMOVED
+      setTypingAvatar(msg.avatarBg); // TO_BE_REMOVED
+
+      await new Promise<void>(r => setTimeout(r, isSynthesis ? 1200 : 700)); // TO_BE_REMOVED
+      if (stoppedRef.current) break; // TO_BE_REMOVED
+
+      // Reveal the full message instantly // TO_BE_REMOVED
+      setTypingVisible(false); // TO_BE_REMOVED
+      setMessages(prev => [...prev, { ...msg, streaming: false }]); // TO_BE_REMOVED
+      if (!isSynthesis) setCompletedCount(prev => prev + 1); // TO_BE_REMOVED
+
+      // Brief pause between messages // TO_BE_REMOVED
+      if (i < demoReplayMessages.length - 1) { // TO_BE_REMOVED
+        await new Promise<void>(r => setTimeout(r, 350)); // TO_BE_REMOVED
+      } // TO_BE_REMOVED
+    } // TO_BE_REMOVED
+
+    if (!stoppedRef.current) { // TO_BE_REMOVED
+      setTypingVisible(false); // TO_BE_REMOVED
+      setDebateComplete(true); // TO_BE_REMOVED
+    } // TO_BE_REMOVED
+    setIsStreaming(false); // TO_BE_REMOVED
+  } // TO_BE_REMOVED
 
   async function startDebate() {
     stoppedRef.current = false;
@@ -111,7 +169,7 @@ export default function StepDebate({
       const response = await fetch('/api/debate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, depth }),
+        body: JSON.stringify({ topic, depth, lang }),
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -123,13 +181,13 @@ export default function StepDebate({
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done || stoppedRef.current) break;
+        if (stoppedRef.current) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        if (value) buffer += decoder.decode(value, { stream: !done });
 
         // SSE events are separated by double newlines
         const blocks = buffer.split('\n\n');
-        buffer = blocks.pop() || '';
+        buffer = done ? '' : (blocks.pop() || '');
 
         for (const block of blocks) {
           const eventMatch = block.match(/^event: (\w+)/);
@@ -141,6 +199,8 @@ export default function StepDebate({
 
           handleSSEEvent(event, data);
         }
+
+        if (done) break;
       }
 
     } catch (err) {
@@ -235,6 +295,26 @@ export default function StepDebate({
         break;
       }
 
+      case 'invalid_topic': {
+        // Maya rejected the topic — show her message then let the user go back
+        setIsStreaming(false);
+        setMessages([{
+          id:          newMsgId(),
+          name:        'Maya Levi',
+          role:        'Orchestrator',
+          model:       'Claude Haiku 4.5',
+          initials:    'ML',
+          avatarBg:    AVATAR_COLORS['ML'],
+          threadColor: THREAD_COLORS['ML'],
+          text:        data.message,
+          streaming:   false,
+          visible:     true,
+          isConclusion: false,
+        }]);
+        setInvalidTopic(true);
+        break;
+      }
+
       case 'error': {
         showToast(`Agent error: ${data.message}`);
         setIsStreaming(false);
@@ -246,7 +326,7 @@ export default function StepDebate({
   function stopStreaming() {
     stoppedRef.current = true;
     setIsStreaming(false);
-    setDebateComplete(true);
+    // debateComplete intentionally NOT set — stopped debates cannot proceed to prototypes
     setTypingVisible(false);
   }
 
@@ -293,12 +373,12 @@ export default function StepDebate({
                 className={`text-xs px-2.5 py-1.5 rounded-md border ${dm ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'}`}
               >← Back</button>
             )}
-            <div className="flex items-center gap-2">
+            <button onClick={onNewSession} className="flex items-center gap-2 cursor-pointer">
               <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
                 <span className="text-white text-xs font-bold font-mono">A</span>
               </div>
               <span className="font-bold text-sm">ArchAI</span>
-            </div>
+            </button>
           </div>
 
           {/* Center: progress pills */}
@@ -418,8 +498,48 @@ export default function StepDebate({
             </div>
           )}
 
-          {/* View Prototypes button — shown when debate is complete */}
-          {debateComplete && (
+          {/* Invalid topic — Maya rejected the prompt */}
+          {invalidTopic && (
+            <div className="text-center pt-4 pb-2 space-y-3">
+              <p className={`text-xs ${subtle}`}>
+                {isHe ? 'חזור ותאר רעיון תוכנה ברור יותר' : 'Go back and describe a clearer software idea'}
+              </p>
+              <button
+                onClick={goBack}
+                className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-lg shadow-indigo-500/20 transition-all"
+              >
+                {isHe ? '← חזור לדף הבית' : '← Back to Home'}
+              </button>
+            </div>
+          )}
+
+          {/* Stopped early — block prototypes, offer restart */}
+          {!isStreaming && !debateComplete && !invalidTopic && messages.length > 0 && (
+            <div className="text-center pt-4 pb-2 space-y-2">
+              <p className={`text-xs ${subtle}`}>
+                {isHe ? 'הדיון הופסק — הפעל מחדש כדי ליצור אב-טיפוסים' : 'Debate stopped — restart to generate prototypes'}
+              </p>
+              <button
+                onClick={() => {
+                  if (demoReplayMessages && demoReplayMessages.length > 0) { // TO_BE_REMOVED
+                    onNewSession(); // TO_BE_REMOVED — demo: go home instead of hitting the API
+                  } else { // TO_BE_REMOVED
+                    debateStartedRef.current = false;
+                    setMessages([]);
+                    setCompletedCount(0);
+                    debateStartedRef.current = true;
+                    startDebate();
+                  } // TO_BE_REMOVED
+                }}
+                className={`text-xs px-4 py-2 rounded-lg border transition-colors ${dm ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-200 hover:bg-slate-100 text-slate-500'}`}
+              >
+                {isHe ? '↺ התחל מחדש' : '↺ Restart Debate'}
+              </button>
+            </div>
+          )}
+
+          {/* View Prototypes button — shown only when debate ran to completion */}
+          {debateComplete && !invalidTopic && (
             <div className="text-center pt-4 pb-2">
               <button
                 onClick={() => navigateTo('prototypes')}

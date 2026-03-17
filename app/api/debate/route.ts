@@ -46,7 +46,7 @@ async function* streamAgentTokens(
   if (provider === "anthropic") {
     const stream = await anthropic.messages.stream({
       model: agent.model,
-      max_tokens: 300,
+      max_tokens: 600,
       system: agent.systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
@@ -67,7 +67,7 @@ async function* streamAgentTokens(
     // system prompt goes in as a "system" role message.
     const stream = await openai.chat.completions.create({
       model: agent.model,
-      max_tokens: 300,
+      max_tokens: 600,
       stream: true,
       messages: [
         { role: "system", content: agent.systemPrompt },
@@ -100,16 +100,26 @@ async function* streamAgentTokens(
   }
 }
 
+// ---------- Language instruction ----------
+function langInstruction(lang: string): string {
+  return lang === 'he'
+    ? '\nIMPORTANT: You must respond entirely in Hebrew (עברית). Every word of your response must be in Hebrew — no English allowed.'
+    : '';
+}
+
 // ---------- POST handler ----------
 export async function POST(request: Request) {
-  const { topic, depth } = await request.json();
+  const { topic, depth, lang = 'en' } = await request.json();
 
   if (!topic?.trim()) {
     return new Response("Missing topic", { status: 400 });
   }
 
-  const agentCount = depth === "quick" ? 4 : 8;
-  const agents = AGENTS.slice(0, agentCount);
+  const agentCount = depth === "mini" ? 3 : depth === "quick" ? 4 : 8;
+  const HAIKU = "claude-haiku-4-5-20251001" as const;
+  const agents = AGENTS.slice(0, agentCount).map(a =>
+    depth === "mini" ? { ...a, model: HAIKU } : a
+  );
   const encoder = new TextEncoder();
   const previousMessages: PreviousMessage[] = [];
 
@@ -123,6 +133,29 @@ export async function POST(request: Request) {
       }
 
       try {
+        // ---------- Topic validation ----------
+        // Maya quickly checks if the topic is a meaningful software idea before
+        // spinning up the full team. Uses Haiku for speed.
+        const validationMsg = await anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 120,
+          system: `You are Maya Levi, an engineering team orchestrator.
+Decide if the topic is a meaningful software product or system worth analyzing by an engineering team.
+If YES: respond with exactly the word VALID and nothing else.
+If NO (gibberish, too short/vague, offensive, or clearly not a software idea): respond with a short 1-2 sentence message in first person explaining what kind of input you need. Be direct and friendly. Do not start with "I'm sorry".${langInstruction(lang)}`,
+          messages: [{ role: "user", content: `Topic: "${topic}"` }],
+        });
+
+        const validationText =
+          validationMsg.content[0].type === "text"
+            ? validationMsg.content[0].text.trim()
+            : "VALID";
+
+        if (!validationText.startsWith("VALID")) {
+          send("invalid_topic", { message: validationText });
+          return;
+        }
+
         // ---------- Main agent loop ----------
         for (const agent of agents) {
           // Tell the frontend this agent is starting
@@ -139,8 +172,14 @@ export async function POST(request: Request) {
           const userPrompt = buildUserPrompt(topic, previousMessages);
           let fullText = "";
 
+          // Inject language instruction into this agent's system prompt
+          const agentWithLang = {
+            ...agent,
+            systemPrompt: agent.systemPrompt + langInstruction(lang),
+          };
+
           // Stream tokens from whichever provider this agent uses
-          for await (const token of streamAgentTokens(agent, userPrompt)) {
+          for await (const token of streamAgentTokens(agentWithLang, userPrompt)) {
             fullText += token;
             send("token", { id: agent.id, initials: agent.initials, token });
           }
@@ -174,9 +213,9 @@ and the recommended first action. Be specific, no vague advice.`;
         ];
 
         const synthStream = await anthropic.messages.stream({
-          model:     "claude-opus-4-6",
-          max_tokens: 200,
-          system:    AGENTS[0].systemPrompt, // Maya's system prompt
+          model:     depth === "mini" ? "claude-haiku-4-5-20251001" : "claude-opus-4-6",
+          max_tokens: 400,
+          system:    AGENTS[0].systemPrompt + langInstruction(lang),
           messages:  synthesisMessages,
         });
 
