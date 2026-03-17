@@ -1,6 +1,8 @@
 // app/api/continue/route.ts
 
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AGENTS } from "@/lib/agents";
 
 // ---------- Provider detection ----------
@@ -53,7 +55,6 @@ async function* streamTokens(
 
   if (provider === "openai") {
     if (!openaiKey) throw new Error("OpenAI API key not provided. Add it in Settings.");
-    const { default: OpenAI } = await import("openai");
     const openai = new OpenAI({ apiKey: openaiKey });
     const stream = await openai.chat.completions.create({
       model,
@@ -73,7 +74,6 @@ async function* streamTokens(
 
   if (provider === "google") {
     if (!geminiKey) throw new Error("Gemini API key not provided. Add it in Settings.");
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const google = new GoogleGenerativeAI(geminiKey);
     const geminiModel = google.getGenerativeModel({
       model,
